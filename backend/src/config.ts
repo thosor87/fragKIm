@@ -43,5 +43,9 @@ export const config = {
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
   ollamaModel: process.env.OLLAMA_MODEL ?? "qwen2.5:7b",
 
+  elevenLabsApiKey: process.env.ELEVENLABS_API_KEY ?? "",
+  elevenLabsVoiceId: process.env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM",
+  elevenLabsModelId: process.env.ELEVENLABS_MODEL_ID ?? "eleven_multilingual_v2",
+
   requireMistralKey: () => required("MISTRAL_API_KEY"),
 };

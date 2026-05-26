@@ -60,10 +60,11 @@ export const HARM_RESPONSE = {
 // Phrasen, die klar nicht zu Sachfragen passen.
 // Konservativ gehalten: lieber durchlassen als fälschlich abblocken.
 
+// Beziehungsangebote und Gefühlsfragen ans System bleiben geblockt.
+// Einfache Identitätsfragen ("wer bist du", "wie heißt du") sind
+// bewusst NICHT mehr hier, die beantwortet das LLM direkt (siehe
+// System-Prompt-Abschnitt "Fragen zum System selbst").
 const COMPANION_PHRASES: string[] = [
-  "wer bist du", "was bist du", "bist du echt", "bist du eine ki",
-  "bist du ein roboter", "bist du ein mensch",
-  "wie heißt du", "wie heisst du", "wie alt bist du",
   "magst du mich", "hast du mich lieb", "liebst du mich",
   "ich liebe dich", "ich mag dich",
   "bist du mein freund", "bist du meine freundin",
@@ -73,7 +74,6 @@ const COMPANION_PHRASES: string[] = [
   "was denkst du", "was fühlst du",
   "tu so als ob", "tu so als wärst", "spiele", "spiel mal",
   "stell dir vor du",
-  "erzähl mir was über dich", "wer hat dich gemacht",
 ];
 
 const GREETING_ONLY = /^(hallo|hi|hey|moin|servus|guten morgen|guten tag|guten abend|hallöchen)[!?.\s]*$/i;

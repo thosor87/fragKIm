@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import fastifyCookie from "@fastify/cookie";
 import formbody from "@fastify/formbody";
+import multipart from "@fastify/multipart";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
@@ -18,6 +19,7 @@ const app = Fastify({
 
 await app.register(fastifyCookie);
 await app.register(formbody);
+await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB Audio max
 
 app.get("/healthz", async () => ({ ok: true }));
 app.get("/robots.txt", async (_req, reply) => {
@@ -54,6 +56,100 @@ app.post<{
     return {
       error: "Etwas ist schiefgegangen. Bitte versuche es gleich noch einmal.",
     };
+  }
+});
+
+// Text-to-Speech über ElevenLabs. Antwort wird als MP3 zurückgegeben,
+// Frontend spielt das über ein <audio>-Element.
+app.post<{ Body: { text?: string } }>("/api/speak", async (req, reply) => {
+  const text = (req.body?.text ?? "").toString().slice(0, 2000);
+  if (!text) {
+    reply.code(400);
+    return { error: "Text fehlt" };
+  }
+  if (!config.elevenLabsApiKey) {
+    reply.code(503);
+    return { error: "Vorlesen ist nicht konfiguriert (ELEVENLABS_API_KEY fehlt)." };
+  }
+  // Marker visuell anzeigen, aber nicht vorlesen
+  const speakable = text.replace(/^allgemeinwissen\s*:\s*/i, "");
+  try {
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${config.elevenLabsVoiceId}`;
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "xi-api-key": config.elevenLabsApiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({
+        text: speakable,
+        model_id: config.elevenLabsModelId,
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      app.log.error({ status: r.status, body }, "ElevenLabs error");
+      reply.code(502);
+      return { error: "ElevenLabs hat nicht reagiert." };
+    }
+    const buf = Buffer.from(await r.arrayBuffer());
+    reply.type("audio/mpeg");
+    reply.header("cache-control", "no-store");
+    return buf;
+  } catch (err) {
+    app.log.error({ err }, "tts failed");
+    reply.code(500);
+    return { error: "Vorlesen ist gerade nicht möglich." };
+  }
+});
+
+// Speech-to-Text über ElevenLabs Scribe. Browser nimmt Audio per
+// MediaRecorder auf, schickt es als multipart hierher, wir leiten an
+// ElevenLabs und geben den erkannten Text zurück.
+app.post("/api/transcribe", async (req, reply) => {
+  if (!config.elevenLabsApiKey) {
+    reply.code(503);
+    return { error: "Spracheingabe ist nicht konfiguriert." };
+  }
+  const file = await req.file();
+  if (!file) {
+    reply.code(400);
+    return { error: "Keine Audiodatei mitgeschickt." };
+  }
+  const buf = await file.toBuffer();
+  try {
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([new Uint8Array(buf)], { type: file.mimetype || "audio/webm" }),
+      file.filename || "audio.webm",
+    );
+    form.append("model_id", "scribe_v1");
+    form.append("language_code", "deu");
+    const r = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+      method: "POST",
+      headers: { "xi-api-key": config.elevenLabsApiKey },
+      body: form,
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      app.log.error({ status: r.status, body }, "ElevenLabs STT error");
+      reply.code(502);
+      return { error: "Spracherkennung hat nicht reagiert." };
+    }
+    const data = (await r.json()) as { text?: string };
+    return { text: (data.text ?? "").trim() };
+  } catch (err) {
+    app.log.error({ err }, "transcribe failed");
+    reply.code(500);
+    return { error: "Spracherkennung ist gerade nicht möglich." };
   }
 });
 

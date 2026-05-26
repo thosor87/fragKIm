@@ -1,15 +1,15 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
   type FormEvent,
 } from "react";
 
-// Voice-Eingabe und Vorlesen wurden bewusst entfernt: die Browser-Speech-API
-// (sowohl SpeechRecognition als auch SpeechSynthesis) ist auf macOS in beiden
-// Browsern zu unzuverlässig (Mic-Indikator-Flackern, Anfangs-Clipping beim
-// Vorlesen). Voice kommt in Phase 2 über Server-STT/TTS (Whisper/Gladia/
-// Mistral Voice), wenn echte Kinder das nutzen sollen.
+// Vorlesen läuft über Server-TTS (ElevenLabs), nicht über die Browser-API.
+// Spracheingabe ist bewusst entfernt (Browser-SpeechRecognition ist auf
+// macOS zu unzuverlässig). Kommt in Phase 2 über Server-STT, wenn echte
+// Kinder das nutzen sollen.
 
 type Source = { title: string; url: string; imageUrl?: string };
 
@@ -43,17 +43,172 @@ export function App() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [recState, setRecState] = useState<"idle" | "recording" | "transcribing">(
+    "idle",
+  );
   const scrollEnd = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const liveIntervalRef = useRef<number | null>(null);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     scrollEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setSpeakingId(null);
+  }, []);
+
+  const toggleSpeak = useCallback(
+    async (id: string, text: string) => {
+      if (speakingId === id) {
+        stopAudio();
+        return;
+      }
+      stopAudio();
+      setSpeakingId(id);
+      try {
+        const res = await fetch("/api/speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? "Vorlesen ging schief.");
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        if (!audioRef.current) audioRef.current = new Audio();
+        audioRef.current.src = url;
+        audioRef.current.onended = () => stopAudio();
+        audioRef.current.onerror = () => stopAudio();
+        await audioRef.current.play();
+      } catch (err) {
+        console.error("TTS failed:", err);
+        stopAudio();
+      }
+    },
+    [speakingId, stopAudio],
+  );
+
+  useEffect(() => {
+    return () => stopAudio();
+  }, [stopAudio]);
+
+  // Audio-Chunks bis hier akkumulieren und an den STT-Endpunkt schicken.
+  // Im Live-Modus läuft das parallel zur Aufnahme alle ~3 Sekunden;
+  // beim Stop ein letztes Mal mit dem kompletten Audio.
+  const transcribeAccumulated = useCallback(
+    async (mime: string, isFinal: boolean): Promise<void> => {
+      if (inFlightRef.current) return;
+      if (chunksRef.current.length === 0) return;
+      // WebM ist headerless im 2./3./… Chunk: alle Chunks zusammenkleben
+      // ergibt ein gültiges WebM von Anfang an.
+      const blob = new Blob(chunksRef.current, { type: mime || "audio/webm" });
+      if (blob.size < 800) return; // zu kurz, lohnt sich nicht
+      inFlightRef.current = true;
+      try {
+        const fd = new FormData();
+        fd.append("file", blob, "audio.webm");
+        const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+        if (!res.ok) return;
+        const data = (await res.json()) as { text?: string };
+        const txt = (data.text ?? "").trim();
+        // Wir ersetzen den Inhalt, weil wir jedes Mal das volle Audio von
+        // Aufnahmebeginn schicken. So bleibt der Text konsistent.
+        if (txt) setQuestion(txt);
+      } catch (err) {
+        console.error("transcribe error:", err);
+      } finally {
+        inFlightRef.current = false;
+        if (isFinal) inputRef.current?.focus();
+      }
+    },
+    [],
+  );
+
+  const stopRecording = useCallback(async () => {
+    if (recState !== "recording") return;
+    if (liveIntervalRef.current !== null) {
+      window.clearInterval(liveIntervalRef.current);
+      liveIntervalRef.current = null;
+    }
+    setRecState("transcribing");
+    const rec = recorderRef.current;
+    if (rec && rec.state !== "inactive") {
+      // onstop kümmert sich um final-Transkription und Aufräumen
+      rec.stop();
+    } else {
+      // Falls Recorder schon weg ist: direkt aufräumen
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setRecState("idle");
+    }
+    recorderRef.current = null;
+  }, [recState]);
+
+  const startRecording = useCallback(async () => {
+    if (recState !== "idle") return;
+    stopAudio();
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      return;
+    }
+    streamRef.current = stream;
+    const mime = MediaRecorder.isTypeSupported("audio/webm")
+      ? "audio/webm"
+      : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+    const rec = mime
+      ? new MediaRecorder(stream, { mimeType: mime })
+      : new MediaRecorder(stream);
+    chunksRef.current = [];
+    rec.ondataavailable = (ev: BlobEvent) => {
+      if (ev.data.size > 0) chunksRef.current.push(ev.data);
+    };
+    rec.onstop = async () => {
+      // Letzten Datensatz abwarten und final transkribieren
+      await transcribeAccumulated(mime, true);
+      chunksRef.current = [];
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setRecState("idle");
+    };
+    recorderRef.current = rec;
+    // timeslice=1000: alle 1s einen Chunk emittieren, sodass wir alle ~3s
+    // zwischendurch transkribieren können.
+    rec.start(1000);
+    setRecState("recording");
+    // Live-Loop alle 3 Sekunden
+    liveIntervalRef.current = window.setInterval(() => {
+      void transcribeAccumulated(mime, false);
+    }, 3000);
+  }, [recState, stopAudio, transcribeAccumulated]);
+
   function resetChat() {
     setMessages([]);
     setError(null);
     setQuestion("");
+    stopAudio();
     inputRef.current?.focus();
   }
 
@@ -170,6 +325,21 @@ export function App() {
                   ) : null;
                 })()}
                 <div className="bubble-body">{m.text}</div>
+                <div className="bubble-actions">
+                  <button
+                    type="button"
+                    className={"icon-btn" + (speakingId === m.id ? " active" : "")}
+                    aria-label={speakingId === m.id ? "Vorlesen stoppen" : "Vorlesen"}
+                    title={speakingId === m.id ? "Vorlesen stoppen" : "Vorlesen"}
+                    onClick={() => toggleSpeak(m.id, m.text)}
+                  >
+                    {speakingId === m.id ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06A7 7 0 0 1 14 18.71v2.06A9 9 0 0 0 14 3.23z"/></svg>
+                    )}
+                  </button>
+                </div>
                 {m.sources.length > 0 && (
                   <div className="sources">
                     <span className="sources-label">Quelle:</span>
@@ -211,18 +381,46 @@ export function App() {
 
       <form className="composer" onSubmit={submit}>
         <div className="composer-inner">
-          <div className="input-wrap">
+          <div className="input-wrap has-mic">
             <textarea
               ref={inputRef}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Was möchtest du wissen?"
+              placeholder={
+                recState === "recording"
+                  ? "Sprich jetzt …"
+                  : recState === "transcribing"
+                    ? "Verstehe …"
+                    : "Was möchtest du wissen?"
+              }
               rows={1}
               maxLength={500}
-              disabled={loading}
+              disabled={loading || recState !== "idle"}
               autoFocus
             />
+            <button
+              type="button"
+              className={
+                "icon-btn mic-inline" +
+                (recState === "recording" ? " active" : "") +
+                (recState === "transcribing" ? " busy" : "")
+              }
+              aria-label={
+                recState === "recording" ? "Aufnahme stoppen" : "Per Mikrofon eingeben"
+              }
+              title={
+                recState === "recording" ? "Aufnahme stoppen" : "Per Mikrofon eingeben"
+              }
+              onClick={recState === "recording" ? stopRecording : startRecording}
+              disabled={loading || recState === "transcribing"}
+            >
+              {recState === "recording" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+              )}
+            </button>
           </div>
           <button type="submit" className="send-btn" disabled={loading || !question.trim()}>
             Senden
