@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install --workspaces --include-workspace-root --omit=optional",
+  "buildCommand": "npm run build && rm -rf node_modules/@huggingface node_modules/@qdrant node_modules/onnxruntime-web node_modules/onnxruntime-node node_modules/sharp backend/node_modules/@huggingface backend/node_modules/@qdrant backend/node_modules/onnxruntime-web backend/node_modules/onnxruntime-node backend/node_modules/sharp",
+  "installCommand": "npm install --workspaces --include-workspace-root",
   "outputDirectory": "public",
   "functions": {
     "api/index.ts": {
