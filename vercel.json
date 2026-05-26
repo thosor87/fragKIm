@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "bash scripts/vercel-build.sh",
+  "buildCommand": "npm run build",
   "installCommand": "npm install --workspaces --include-workspace-root",
   "outputDirectory": "public",
   "functions": {
