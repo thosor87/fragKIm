@@ -13,8 +13,19 @@ REMOVE=(
   "onnxruntime-web"
   "onnxruntime-node"
   "sharp"
+  "@img"
 )
-for pkg in "${REMOVE[@]}"; do
-  rm -rf "node_modules/$pkg" "backend/node_modules/$pkg" 2>/dev/null || true
+
+for root in node_modules backend/node_modules; do
+  [ -d "$root" ] || continue
+  for pkg in "${REMOVE[@]}"; do
+    target="$root/$pkg"
+    if [ -e "$target" ]; then
+      du -sh "$target" 2>/dev/null | head -1
+      rm -rf "$target"
+    fi
+  done
 done
-echo "Vercel-Build fertig, Slim-Pakete entfernt."
+
+echo "Vercel-Build fertig. Schwer-Pakete entfernt."
+du -sh node_modules backend/node_modules 2>/dev/null || true
