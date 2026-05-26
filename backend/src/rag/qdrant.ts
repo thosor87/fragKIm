@@ -6,6 +6,8 @@ export const qdrant = new QdrantClient({
   apiKey: config.qdrantApiKey || undefined,
 });
 
+export type WikiSourceId = "klexikon" | "grundschulwiki";
+
 export type KlexikonPayload = {
   title: string;
   url: string;
@@ -13,6 +15,7 @@ export type KlexikonPayload = {
   text: string;
   updatedAt?: string;
   imageUrl?: string;
+  source?: WikiSourceId;
 };
 
 export type Hit = {

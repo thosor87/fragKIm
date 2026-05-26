@@ -95,6 +95,7 @@ async function ollamaGenerate(
   question: string,
   hits: Hit[],
   history: ChatTurn[],
+  allgemeinwissenAllowed: boolean,
 ): Promise<GenerateResult> {
   const trimmedHistory = history.slice(-6).map((h) => ({
     role: h.role,
@@ -107,7 +108,7 @@ async function ollamaGenerate(
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       ...trimmedHistory,
-      { role: "user", content: buildUserPrompt(question, hits) },
+      { role: "user", content: buildUserPrompt(question, hits, allgemeinwissenAllowed) },
     ],
   };
   const res = await fetch(`${config.ollamaUrl}/api/chat`, {
@@ -133,29 +134,45 @@ async function ollamaGenerate(
 
 let mistralClient: import("@mistralai/mistralai").Mistral | null = null;
 
-function buildUserPrompt(question: string, hits: Hit[]): string {
+function buildUserPrompt(
+  question: string,
+  hits: Hit[],
+  allgemeinwissenAllowed: boolean,
+): string {
+  const allgemeinClause = allgemeinwissenAllowed
+    ? `- Sachfrage, Antwort aus Allgemeinwissen bekannt? Beginne mit "Allgemeinwissen: ".`
+    : `- Allgemeinwissen ist diesmal AUS. Wenn die Auszüge nicht reichen, antworte "WEISS_ICH_NICHT". Greife NICHT auf Allgemeinwissen zurück.`;
+
   if (hits.length === 0) {
+    const emptyFallback = allgemeinwissenAllowed
+      ? `- Sachfrage, Antwort aus Allgemeinwissen bekannt? Beginne mit "Allgemeinwissen: ".`
+      : `- Allgemeinwissen ist AUS. Antworte "WEISS_ICH_NICHT".`;
     return `Frage des Kindes: ${question}
 
-Hinweis: Im Klexikon ist zu dieser Frage nichts gefunden worden.
+Hinweis: In den aktivierten Wissensquellen wurde zu dieser Frage nichts gefunden.
 
 Antworte nach den Regeln aus dem System-Prompt:
 - Frage zum System ("wer bist du" usw.)? Kurze sachliche KIm-Antwort, ohne Marker.
 - Kindgerechte Kreativ-Bitte (Witz, Rätsel, Zungenbrecher, Reim, Quatsch)? Direkt erfüllen, ohne Marker.
-- Sachfrage, Antwort aus Allgemeinwissen bekannt? Beginne mit "Allgemeinwissen: ".
+${emptyFallback}
 - Beziehungsangebot oder Gefühlsfrage ans System? "OFFTOPIC".
 - Sonst: "WEISS_ICH_NICHT".`;
   }
   const ctx = hits
-    .map(
-      (h, i) =>
-        `[Auszug ${i + 1}] ${h.payload.title} (${h.payload.url})\n${h.payload.text}`,
-    )
+    .map((h, i) => {
+      const src = h.payload.source ?? "wiki";
+      return `[Auszug ${i + 1}] ${h.payload.title} (Quelle: ${src}, ${h.payload.url})\n${h.payload.text}`;
+    })
     .join("\n\n");
+  const dRule = allgemeinwissenAllowed
+    ? `(d) Beantworten die Auszüge die konkrete Sachfrage NICHT direkt, kennst du sie aber aus Allgemeinwissen? Wenn ja: antworte mit Marker "Allgemeinwissen: ".`
+    : `(d) Allgemeinwissen ist diesmal AUS. Wenn die Auszüge die Sachfrage nicht beantworten, antworte "WEISS_ICH_NICHT". Greife NICHT auf Allgemeinwissen zurück.`;
   return `Frage des Kindes: ${question}
 
-Auszüge aus dem Klexikon:
+Auszüge aus den Wissensquellen:
 ${ctx}
+
+${allgemeinClause}
 
 Antworte nach den Regeln aus dem System-Prompt.
 
@@ -163,7 +180,7 @@ Prüfe Schritt für Schritt:
 (a) Frage zum System selbst ("wer bist du", "wie heißt du", "bist du eine KI", "was kannst du")? Kurze Antwort in dritter Person zu KIm, ohne Marker.
 (b) Kindgerechte Kreativ-Bitte (Witz, Rätsel, Reim, Quatsch)? Direkt erfüllen, ohne Marker, ohne Quellen.
 (c) Beantworten die Auszüge die konkrete Sachfrage direkt? Wenn ja: antworte direkt ohne Präfix.
-(d) Beantworten die Auszüge die konkrete Sachfrage NICHT direkt, kennst du sie aber aus Allgemeinwissen? Wenn ja: antworte mit Marker "Allgemeinwissen: ".
+${dRule}
 (e) Off-topic / Beziehungsangebot / Gefühlsfrage? Wenn ja: "OFFTOPIC".
 (f) Sonst: "WEISS_ICH_NICHT".`;
 }
@@ -172,6 +189,7 @@ async function mistralGenerate(
   question: string,
   hits: Hit[],
   history: ChatTurn[],
+  allgemeinwissenAllowed: boolean,
 ): Promise<GenerateResult> {
   if (!mistralClient) {
     const { Mistral } = await import("@mistralai/mistralai");
@@ -187,7 +205,7 @@ async function mistralGenerate(
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       ...trimmedHistory,
-      { role: "user", content: buildUserPrompt(question, hits) },
+      { role: "user", content: buildUserPrompt(question, hits, allgemeinwissenAllowed) },
     ],
   });
   const content = res.choices?.[0]?.message?.content;
@@ -206,9 +224,13 @@ export async function generate(
   question: string,
   hits: Hit[],
   history: ChatTurn[] = [],
+  allgemeinwissenAllowed: boolean = true,
 ): Promise<GenerateResult> {
-  if (config.llmProvider === "mistral") return mistralGenerate(question, hits, history);
-  if (config.llmProvider === "ollama") return ollamaGenerate(question, hits, history);
+  if (config.llmProvider === "mistral")
+    return mistralGenerate(question, hits, history, allgemeinwissenAllowed);
+  if (config.llmProvider === "ollama")
+    return ollamaGenerate(question, hits, history, allgemeinwissenAllowed);
   void history;
+  void allgemeinwissenAllowed;
   return stubGenerate(question, hits);
 }

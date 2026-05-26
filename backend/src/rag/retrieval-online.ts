@@ -1,24 +1,56 @@
-// Online-Retrieval direkt gegen die MediaWiki-API von klexikon.zum.de.
+// Online-Retrieval direkt gegen MediaWiki-APIs der ZUM-Wikis.
 //
-// Vorteil: Null Setup, keine Qdrant, kein Index.
-// Nachteil: Keyword-Suche statt semantischer Suche, ~1-2s Latenz pro Frage,
-// Last auf dem kleinen ZUM-Server.
+// Unterstützte Quellen:
+//   - Klexikon          (klexikon.zum.de)         für Kinder ab ca. 8 Jahren
+//   - Grundschulwiki    (grundschulwiki.zum.de)   für Grundschule (Klasse 1-4)
 //
-// Liefert Hits in derselben Form wie das lokale Qdrant-Backend.
+// Beide Wikis nutzen die gleiche MediaWiki-Struktur, deshalb kann eine
+// einzige Such-Logik beide bedienen. Bei "beide" werden parallel angefragt
+// und die Treffer gemerged.
 
-import type { Hit, KlexikonPayload } from "./qdrant.js";
+import type { Hit, KlexikonPayload, WikiSourceId } from "./qdrant.js";
 import { config } from "../config.js";
+import {
+  archiveEnabled,
+  searchGrundschulwikiArchive,
+} from "./retrieval-archive.js";
 
-const API = "https://klexikon.zum.de/api.php";
+type WikiSource = {
+  id: WikiSourceId;
+  label: string;
+  apiUrl: string;
+  articleBase: string;
+};
+
+const SOURCES: Record<WikiSourceId, WikiSource> = {
+  klexikon: {
+    id: "klexikon",
+    label: "Klexikon",
+    apiUrl: "https://klexikon.zum.de/api.php",
+    articleBase: "https://klexikon.zum.de/wiki/",
+  },
+  grundschulwiki: {
+    id: "grundschulwiki",
+    label: "Grundschulwiki",
+    apiUrl: "https://grundschulwiki.zum.de/api.php",
+    articleBase: "https://grundschulwiki.zum.de/wiki/",
+  },
+};
+
 const UA = `fragKIm-PoC/0.1 (+Kontakt: ${config.crawlerContact})`;
-const MAX_HITS = 3;
-const TEXT_CHARS = 6000; // pro Treffer: 6 KB reichen für mittellange Klexikon-Artikel
+const MAX_HITS_PER_SOURCE = 3;
+const TEXT_CHARS = 6000;
 
-// In-Memory-Cache, einfacher LRU-Ersatz: Title → { text, imageUrl? }
+// Cache: source|title → entry
 const cache = new Map<string, { text: string; imageUrl?: string }>();
-const CACHE_MAX = 200;
+const CACHE_MAX = 400;
+
+function cacheKey(source: WikiSourceId, title: string): string {
+  return `${source}|${title}`;
+}
 
 function rememberCache(
+  source: WikiSourceId,
   title: string,
   entry: { text: string; imageUrl?: string },
 ): void {
@@ -26,11 +58,14 @@ function rememberCache(
     const first = cache.keys().next().value;
     if (first) cache.delete(first);
   }
-  cache.set(title, entry);
+  cache.set(cacheKey(source, title), entry);
 }
 
-async function api<T>(params: Record<string, string>): Promise<T> {
-  const url = new URL(API);
+async function api<T>(
+  source: WikiSource,
+  params: Record<string, string>,
+): Promise<T> {
+  const url = new URL(source.apiUrl);
   url.searchParams.set("format", "json");
   url.searchParams.set("formatversion", "2");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -38,39 +73,53 @@ async function api<T>(params: Record<string, string>): Promise<T> {
     headers: { "User-Agent": UA },
     signal: AbortSignal.timeout(8000),
   });
-  if (!res.ok) throw new Error(`Klexikon API HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`${source.label} API HTTP ${res.status}`);
   return (await res.json()) as T;
 }
 
+type SearchItem = { title: string; pageid: number; snippet?: string };
+
 type SearchResp = {
-  query?: { search?: { title: string; pageid: number; snippet?: string }[] };
+  query?: { search?: SearchItem[] };
 };
 
+// MediaWiki v1 liefert text als { "*": "..." }, v2 als string.
+type ParseTextV1 = { "*": string };
 type ParseResp = {
-  parse?: { title: string; pageid: number; text?: string };
+  parse?: {
+    title: string;
+    pageid?: number;
+    text?: string | ParseTextV1;
+  };
   error?: { code: string; info: string };
 };
 
-// Extrahiert die erste passende Thumbnail-URL aus dem Article-HTML.
-// Klexikon-Artikel haben Bilder meist als <img class="thumbimage" src="...">
-// in Wikimedia-Commons-Hosting. Wir nehmen die thumb-URL und upgraden auf
-// eine etwas größere Variante.
-function extractFirstImage(html: string): string | undefined {
-  // Erste Variante: gezielt thumbimage-Klasse
+function parseHtml(text: string | ParseTextV1 | undefined): string {
+  if (!text) return "";
+  if (typeof text === "string") return text;
+  return text["*"] ?? "";
+}
+
+function extractFirstImage(html: string, baseOrigin: string): string | undefined {
+  // Verschiedene MediaWiki-Versionen liefern unterschiedliche Klassen.
+  // Wir versuchen drei Varianten und nehmen die erste, die matched.
   let m = html.match(
     /<img\b[^>]*\bclass="[^"]*\bthumbimage\b[^"]*"[^>]*\bsrc="([^"]+)"/i,
   );
   if (!m) {
-    // Fallback: erstes Bild aus upload.wikimedia.org
     m = html.match(
       /<img\b[^>]*\bsrc="(https?:\/\/upload\.wikimedia\.org\/[^"]+)"/i,
     );
   }
+  if (!m) {
+    // Generisches erstes <img> mit src, auch relative URLs (Grundschulwiki)
+    m = html.match(/<img\b[^>]*\bsrc="([^"]+)"/i);
+  }
   if (!m) return undefined;
-  // Originale thumb-URL übernehmen. Hochskalieren ist heikel, weil
-  // Wikimedia nur bestimmte Standardgrößen generiert; falsche px-Werte
-  // geben HTTP 400.
-  return m[1];
+  let url = m[1];
+  if (url.startsWith("//")) url = "https:" + url;
+  else if (url.startsWith("/")) url = baseOrigin + url;
+  return url;
 }
 
 function htmlToText(html: string): string {
@@ -98,16 +147,17 @@ function htmlToText(html: string): string {
   return out;
 }
 
-function articleUrl(title: string): string {
-  return `https://klexikon.zum.de/wiki/${encodeURIComponent(title.replace(/\s/g, "_"))}`;
+function articleUrl(source: WikiSource, title: string): string {
+  return source.articleBase + encodeURIComponent(title.replace(/\s/g, "_"));
 }
 
 async function fetchArticle(
+  source: WikiSource,
   title: string,
 ): Promise<{ text: string; imageUrl?: string } | null> {
-  const cached = cache.get(title);
+  const cached = cache.get(cacheKey(source.id, title));
   if (cached) return cached;
-  const resp = await api<ParseResp>({
+  const resp = await api<ParseResp>(source, {
     action: "parse",
     page: title,
     prop: "text",
@@ -115,17 +165,19 @@ async function fetchArticle(
     disableeditsection: "1",
     disabletoc: "1",
   });
-  if (resp.error || !resp.parse?.text) return null;
-  const imageUrl = extractFirstImage(resp.parse.text);
-  const text = htmlToText(resp.parse.text).trim().slice(0, TEXT_CHARS);
+  if (resp.error) return null;
+  const html = parseHtml(resp.parse?.text);
+  if (!html) return null;
+  const baseOrigin = new URL(source.articleBase).origin;
+  const imageUrl = extractFirstImage(html, baseOrigin);
+  const text = htmlToText(html).trim().slice(0, TEXT_CHARS);
   if (text.length < 80) return null;
   const entry = { text, imageUrl };
-  rememberCache(title, entry);
+  rememberCache(source.id, title, entry);
   return entry;
 }
 
-// Deutsche Stopwörter + Frageeinleitungen. Reduziert Fragesätze auf die
-// inhaltlichen Begriffe, damit MediaWiki-Volltextsuche brauchbar funktioniert.
+// Deutsche Stopwörter und Frageeinleitungen.
 const STOPWORDS = new Set([
   "wie", "was", "wer", "wo", "wann", "warum", "wieso", "weshalb", "welche",
   "welcher", "welches", "welchen",
@@ -152,15 +204,16 @@ function reduceQuery(q: string): string {
   return tokens.join(" ").trim();
 }
 
-type SearchItem = { title: string; pageid: number; snippet?: string };
-
-async function rawSearch(srsearch: string): Promise<SearchItem[]> {
-  const r = await api<SearchResp>({
+async function rawSearch(
+  source: WikiSource,
+  srsearch: string,
+): Promise<SearchItem[]> {
+  const r = await api<SearchResp>(source, {
     action: "query",
     list: "search",
     srsearch,
     srnamespace: "0",
-    srlimit: String(MAX_HITS),
+    srlimit: String(MAX_HITS_PER_SOURCE),
   });
   return r.query?.search ?? [];
 }
@@ -176,48 +229,83 @@ function uniqByTitle(arr: SearchItem[]): SearchItem[] {
   return out;
 }
 
-export async function searchOnline(query: string): Promise<Hit[]> {
-  // ZUM-Wiki MediaWiki-Search ist AND-of-tokens ohne Stemming.
-  // Mehrwort-Queries scheitern fast immer. Eskalation in drei Stufen:
-  let items = await rawSearch(query);
+async function searchOneSource(
+  source: WikiSource,
+  query: string,
+): Promise<Hit[]> {
+  let items = await rawSearch(source, query);
   if (items.length === 0) {
     const reduced = reduceQuery(query);
     if (reduced && reduced !== query.toLowerCase()) {
-      items = await rawSearch(reduced);
+      items = await rawSearch(source, reduced);
     }
-    // 3. Stufe: jedes Inhaltswort einzeln, dann mergen
     if (items.length === 0 && reduced) {
       const words = reduced
         .split(/\s+/)
         .filter((w) => w.length > 2)
-        // Längste Wörter zuerst — vermutlich das Hauptsubjekt
         .sort((a, b) => b.length - a.length)
         .slice(0, 4);
-      const perWord = await Promise.all(words.map((w) => rawSearch(w)));
-      items = uniqByTitle(perWord.flat()).slice(0, MAX_HITS);
+      const perWord = await Promise.all(
+        words.map((w) => rawSearch(source, w)),
+      );
+      items = uniqByTitle(perWord.flat()).slice(0, MAX_HITS_PER_SOURCE);
     }
   }
   if (items.length === 0) return [];
 
-  // Texte parallel holen, jeweils mit Timeout
   const settled = await Promise.allSettled(
     items.map(async (it, i) => {
-      const article = await fetchArticle(it.title);
+      const article = await fetchArticle(source, it.title);
       if (!article) return null;
-      // MediaWiki sortiert nach Relevanz; wir simulieren Scores leicht abfallend
       const score = 1 - i * 0.1;
       const payload: KlexikonPayload = {
         title: it.title,
-        url: articleUrl(it.title),
+        url: articleUrl(source, it.title),
         chunkIndex: 0,
         text: article.text,
         imageUrl: article.imageUrl,
+        source: source.id,
       };
       return { score, payload } satisfies Hit;
     }),
   );
   return settled
-    .filter((r): r is PromiseFulfilledResult<Hit | null> => r.status === "fulfilled")
+    .filter(
+      (r): r is PromiseFulfilledResult<Hit | null> => r.status === "fulfilled",
+    )
     .map((r) => r.value)
     .filter((h): h is Hit => h !== null);
+}
+
+async function searchOneSourceOrArchive(
+  id: WikiSourceId,
+  query: string,
+): Promise<Hit[]> {
+  // Grundschulwiki: wenn Archive konfiguriert ist, lokales Archiv verwenden,
+  // sonst die (bald abgeschaltete) Live-API.
+  if (id === "grundschulwiki" && archiveEnabled()) {
+    return searchGrundschulwikiArchive(query);
+  }
+  return searchOneSource(SOURCES[id], query);
+}
+
+export async function searchOnline(
+  query: string,
+  sourceIds: WikiSourceId[] = ["klexikon", "grundschulwiki"],
+): Promise<Hit[]> {
+  if (sourceIds.length === 0) return [];
+  const results = await Promise.all(
+    sourceIds.map((id) => searchOneSourceOrArchive(id, query)),
+  );
+  // Hits ineinanderfächern: erst Klexikon-Top, dann Grundschulwiki-Top usw.,
+  // bis MAX erreicht.
+  const merged: Hit[] = [];
+  const max = Math.max(...results.map((r) => r.length));
+  for (let i = 0; i < max && merged.length < 5; i++) {
+    for (const list of results) {
+      if (list[i]) merged.push(list[i]);
+      if (merged.length >= 5) break;
+    }
+  }
+  return merged;
 }

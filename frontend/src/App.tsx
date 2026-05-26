@@ -11,7 +11,29 @@ import {
 // macOS zu unzuverlässig). Kommt in Phase 2 über Server-STT, wenn echte
 // Kinder das nutzen sollen.
 
-type Source = { title: string; url: string; imageUrl?: string };
+type WikiSourceId = "klexikon" | "grundschulwiki";
+type Source = {
+  title: string;
+  url: string;
+  imageUrl?: string;
+  wiki?: WikiSourceId;
+};
+
+type SourceFlags = {
+  klexikon: boolean;
+  grundschulwiki: boolean;
+  allgemeinwissen: boolean;
+};
+const DEFAULT_SOURCES: SourceFlags = {
+  klexikon: true,
+  grundschulwiki: true,
+  allgemeinwissen: true,
+};
+
+const WIKI_LABEL: Record<WikiSourceId, string> = {
+  klexikon: "Klexikon",
+  grundschulwiki: "Grundschulwiki",
+};
 
 type AssistantMessage = {
   id: string;
@@ -47,6 +69,7 @@ export function App() {
   const [recState, setRecState] = useState<"idle" | "recording" | "transcribing">(
     "idle",
   );
+  const [sourcePrefs, setSourcePrefs] = useState<SourceFlags>(DEFAULT_SOURCES);
   const scrollEnd = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -231,7 +254,7 @@ export function App() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, history }),
+        body: JSON.stringify({ question: q, history, sources: sourcePrefs }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -284,6 +307,31 @@ export function App() {
           </button>
         )}
       </header>
+
+      <div className="sources-bar" aria-label="Aktive Wissensquellen">
+        <span className="sources-bar-label">Quellen:</span>
+        {(["klexikon", "grundschulwiki", "allgemeinwissen"] as const).map((k) => {
+          const label =
+            k === "klexikon"
+              ? "Klexikon"
+              : k === "grundschulwiki"
+                ? "Grundschulwiki"
+                : "Allgemeinwissen";
+          const on = sourcePrefs[k];
+          return (
+            <button
+              key={k}
+              type="button"
+              className={"source-toggle" + (on ? " on" : " off")}
+              aria-pressed={on}
+              onClick={() => setSourcePrefs((s) => ({ ...s, [k]: !s[k] }))}
+              title={on ? `${label} ausschalten` : `${label} einschalten`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
       <main className="chat">
         {messages.length === 0 && (
@@ -353,6 +401,11 @@ export function App() {
                           >
                             {s.title}
                           </a>
+                          {s.wiki && (
+                            <span className="src-wiki">
+                              {" "}({WIKI_LABEL[s.wiki]})
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -429,21 +482,29 @@ export function App() {
       </form>
 
       <footer className="footer">
-        Inhalte aus dem{" "}
+        Inhalte aus{" "}
         <a
           href="https://klexikon.zum.de/"
           target="_blank"
           rel="noopener noreferrer"
         >
           Klexikon
+        </a>{" "}
+        und{" "}
+        <a
+          href="https://grundschulwiki.zum.de/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Grundschulwiki
         </a>
-        , lizenziert unter{" "}
+        , beide lizenziert unter{" "}
         <a
           href="https://creativecommons.org/licenses/by-sa/4.0/deed.de"
           target="_blank"
           rel="noopener noreferrer"
         >
-          CC BY-SA 4.0
+          CC BY-SA
         </a>
         . Nichts an diesem Gespräch wird gespeichert.
       </footer>

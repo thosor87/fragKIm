@@ -6,8 +6,9 @@ import multipart from "@fastify/multipart";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
-import { ask, type ChatTurn } from "./rag/pipeline.js";
+import { ask, type ChatTurn, type SourceFlags, DEFAULT_SOURCES } from "./rag/pipeline.js";
 import { registerAuth } from "./auth.js";
+import { registerArchiveViewer } from "./archive-viewer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendDist = path.resolve(__dirname, "../../frontend/dist");
@@ -28,9 +29,14 @@ app.get("/robots.txt", async (_req, reply) => {
 });
 
 registerAuth(app);
+registerArchiveViewer(app);
 
 app.post<{
-  Body: { question?: string; history?: ChatTurn[] };
+  Body: {
+    question?: string;
+    history?: ChatTurn[];
+    sources?: Partial<SourceFlags>;
+  };
 }>("/api/ask", async (req, reply) => {
   const q = (req.body?.question ?? "").toString();
   if (!q || q.length > 500) {
@@ -47,8 +53,14 @@ app.post<{
         t.content.length <= 2000,
     )
     .slice(-6);
+  const sIn = req.body?.sources ?? {};
+  const sources: SourceFlags = {
+    klexikon: sIn.klexikon ?? DEFAULT_SOURCES.klexikon,
+    grundschulwiki: sIn.grundschulwiki ?? DEFAULT_SOURCES.grundschulwiki,
+    allgemeinwissen: sIn.allgemeinwissen ?? DEFAULT_SOURCES.allgemeinwissen,
+  };
   try {
-    const result = await ask(q, history);
+    const result = await ask(q, history, sources);
     return result;
   } catch (err) {
     app.log.error({ err }, "ask failed");

@@ -40,6 +40,8 @@ export const config = {
 
   crawlerContact: process.env.CRAWLER_CONTACT ?? "anonymous",
 
+  grundschulwikiArchiveUrl: process.env.GRUNDSCHULWIKI_ARCHIVE_URL ?? "",
+
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
   ollamaModel: process.env.OLLAMA_MODEL ?? "qwen2.5:7b",
 

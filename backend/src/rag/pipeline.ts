@@ -2,6 +2,19 @@ import { config } from "../config.js";
 import { embed } from "./embeddings.js";
 import { searchChunks, type Hit } from "./qdrant.js";
 import { searchOnline } from "./retrieval-online.js";
+import type { WikiSourceId } from "./qdrant.js";
+
+export type SourceFlags = {
+  klexikon: boolean;
+  grundschulwiki: boolean;
+  allgemeinwissen: boolean;
+};
+
+export const DEFAULT_SOURCES: SourceFlags = {
+  klexikon: true,
+  grundschulwiki: true,
+  allgemeinwissen: true,
+};
 import {
   isSensitive,
   isCompanionRequest,
@@ -15,7 +28,12 @@ import {
 import { generate, noAnswer } from "./generator.js";
 import { rewriteQuery } from "./rewrite.js";
 
-export type Source = { title: string; url: string; imageUrl?: string };
+export type Source = {
+  title: string;
+  url: string;
+  imageUrl?: string;
+  wiki?: WikiSourceId; // "klexikon" | "grundschulwiki"
+};
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 export type AskResult = {
@@ -36,6 +54,7 @@ function dedupeSources(hits: Hit[]): Source[] {
       title: h.payload.title,
       url: h.payload.url,
       imageUrl: h.payload.imageUrl,
+      wiki: h.payload.source,
     });
   }
   return sources;
@@ -44,9 +63,17 @@ function dedupeSources(hits: Hit[]): Source[] {
 const MIN_LOCAL_SCORE = 0.55;
 const MIN_ONLINE_SCORE = 0.6; // erste 3 MediaWiki-Hits sind so gut wie immer relevant
 
-async function retrieve(question: string): Promise<Hit[]> {
+async function retrieve(
+  question: string,
+  sources: SourceFlags,
+): Promise<Hit[]> {
+  const wikiIds: WikiSourceId[] = [];
+  if (sources.klexikon) wikiIds.push("klexikon");
+  if (sources.grundschulwiki) wikiIds.push("grundschulwiki");
+  if (wikiIds.length === 0) return [];
+
   if (config.retrievalProvider === "online") {
-    return searchOnline(question);
+    return searchOnline(question, wikiIds);
   }
   const vec = await embed("query", question);
   return searchChunks(vec, 5);
@@ -56,6 +83,7 @@ async function retrieve(question: string): Promise<Hit[]> {
 export async function ask(
   question: string,
   history: ChatTurn[] = [],
+  sources: SourceFlags = DEFAULT_SOURCES,
 ): Promise<AskResult> {
   const q = question.trim();
   if (!q) {
@@ -121,8 +149,8 @@ export async function ask(
       refused: true,
     };
   }
-  // 2. Retrieval mit der eigenständigen Frage
-  const hits = await retrieve(retrievalQuery);
+  // 2. Retrieval mit der eigenständigen Frage (nur in aktivierten Wikis)
+  const hits = await retrieve(retrievalQuery, sources);
   const minScore = config.retrievalProvider === "online" ? MIN_ONLINE_SCORE : MIN_LOCAL_SCORE;
   const strong = hits.filter((h) => h.score >= minScore);
 
@@ -143,8 +171,13 @@ export async function ask(
   // 3. Antwort generieren mit der eigenständigen Frage (rewritten), damit
   // Pronomen wie "darin" / "er" auch im Generator aufgelöst sind. Verlauf
   // bleibt für stilistischen Kontext. Faktenchecker bleibt deaktiviert
-  // (Weg 2 erlaubt Allgemeinwissen-Fallback).
-  const out = await generate(retrievalQuery, strong, history);
+  // (Weg 2 erlaubt Allgemeinwissen-Fallback, sofern aktiv).
+  const out = await generate(
+    retrievalQuery,
+    strong,
+    history,
+    sources.allgemeinwissen,
+  );
   // Wenn das LLM "HARM" zurückgibt, übernehmen wir die feste Harm-Antwort,
   // damit das Modell keinen eigenen Refusal-Text produziert.
   if (out.text === "HARM") {
