@@ -1,0 +1,23 @@
+{
+  "name": "fragkim-poc",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build && npm --workspace backend run build",
+    "start": "node backend/dist/server.js",
+    "crawl": "tsx scripts/crawl-klexikon.ts",
+    "index": "tsx scripts/index-klexikon.ts",
+    "qdrant:up": "docker compose up -d qdrant",
+    "qdrant:down": "docker compose down"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Suchmaschinen weiterhin aussperren (PoC, keine DSFA) -->
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+
+    <title>frag KIm — interne Demo</title>
+    <meta
+      name="description"
+      content="frag KIm ist ein Proof-of-Concept einer kindersicheren KI-Wissensauskunft, angelehnt an fragFINN, mit Klexikon als Quelle. Interne Entwicklungs-Demo, nicht für Kinder bestimmt."
+    />
+
+    <!-- Linkvorschau für Slack, WhatsApp, Mail, Discord -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="frag KIm — interne Demo" />
+    <meta
+      property="og:description"
+      content="Kindersichere KI-Wissensauskunft (Proof of Concept). RAG über Klexikon, Mistral LLM, EU-gehostet. Interne Demo, nicht für Kinder bestimmt."
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="frag KIm Logo mit Glühbirne und Hinweis: interne Entwicklungs-Demo" />
+    <meta property="og:locale" content="de_DE" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="frag KIm — interne Demo" />
+    <meta
+      name="twitter:description"
+      content="Kindersichere KI-Wissensauskunft (PoC). RAG über Klexikon, EU-gehostet. Nicht für Kinder bestimmt."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Theme color für mobile Browser -->
+    <meta name="theme-color" content="#2bb3a3" />
+
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

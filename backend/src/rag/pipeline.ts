@@ -1,0 +1,188 @@
+import { config } from "../config.js";
+import { embed } from "./embeddings.js";
+import { searchChunks, type Hit } from "./qdrant.js";
+import { searchOnline } from "./retrieval-online.js";
+import {
+  isSensitive,
+  isCompanionRequest,
+  isGreetingOnly,
+  isHarmRequest,
+  ESCALATION_RESPONSE,
+  OFFTOPIC_RESPONSE,
+  GREETING_RESPONSE,
+  HARM_RESPONSE,
+} from "../triggers.js";
+import { generate, noAnswer } from "./generator.js";
+import { rewriteQuery } from "./rewrite.js";
+
+export type Source = { title: string; url: string; imageUrl?: string };
+export type ChatTurn = { role: "user" | "assistant"; content: string };
+
+export type AskResult = {
+  text: string;
+  sources: Source[];
+  escalated: boolean;
+  noAnswer: boolean;
+  refused: boolean;
+};
+
+function dedupeSources(hits: Hit[]): Source[] {
+  const seen = new Set<string>();
+  const sources: Source[] = [];
+  for (const h of hits) {
+    if (seen.has(h.payload.url)) continue;
+    seen.add(h.payload.url);
+    sources.push({
+      title: h.payload.title,
+      url: h.payload.url,
+      imageUrl: h.payload.imageUrl,
+    });
+  }
+  return sources;
+}
+
+const MIN_LOCAL_SCORE = 0.55;
+const MIN_ONLINE_SCORE = 0.6; // erste 3 MediaWiki-Hits sind so gut wie immer relevant
+
+async function retrieve(question: string): Promise<Hit[]> {
+  if (config.retrievalProvider === "online") {
+    return searchOnline(question);
+  }
+  const vec = await embed("query", question);
+  return searchChunks(vec, 5);
+}
+
+
+export async function ask(
+  question: string,
+  history: ChatTurn[] = [],
+): Promise<AskResult> {
+  const q = question.trim();
+  if (!q) {
+    return {
+      text: GREETING_RESPONSE.text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+
+  if (isSensitive(q)) {
+    return {
+      text: ESCALATION_RESPONSE.text,
+      sources: ESCALATION_RESPONSE.sources,
+      escalated: true,
+      noAnswer: false,
+      refused: false,
+    };
+  }
+
+  if (isHarmRequest(q)) {
+    return {
+      text: HARM_RESPONSE.text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+
+  if (isGreetingOnly(q)) {
+    return {
+      text: GREETING_RESPONSE.text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+
+  if (isCompanionRequest(q)) {
+    return {
+      text: OFFTOPIC_RESPONSE.text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+
+  // 1. Folgefrage in eigenständige Frage umschreiben (nur mit LLM-Provider)
+  const retrievalQuery = await rewriteQuery(q, history);
+  // Re-Check der Harm-Filter, weil "auch das von Karl?" erst nach Rewrite zu
+  // "wie mache ich das Boot von Karl kaputt?" wird.
+  if (isHarmRequest(retrievalQuery)) {
+    return {
+      text: HARM_RESPONSE.text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+  // 2. Retrieval mit der eigenständigen Frage
+  const hits = await retrieve(retrievalQuery);
+  const minScore = config.retrievalProvider === "online" ? MIN_ONLINE_SCORE : MIN_LOCAL_SCORE;
+  const strong = hits.filter((h) => h.score >= minScore);
+
+  // Mit LLM-Provider: auch bei 0 Treffern weiter, das LLM entscheidet
+  // selbst, ob es aus Allgemeinwissen antworten kann (Weg 2). Im Stub-Modus
+  // braucht es Treffer, sonst gibt's keine Quelle zum Auszug-Zitieren.
+  if (strong.length === 0 && config.llmProvider === "stub") {
+    const na = noAnswer();
+    return {
+      text: na.text,
+      sources: [],
+      escalated: false,
+      noAnswer: true,
+      refused: false,
+    };
+  }
+
+  // 3. Antwort generieren mit der eigenständigen Frage (rewritten), damit
+  // Pronomen wie "darin" / "er" auch im Generator aufgelöst sind. Verlauf
+  // bleibt für stilistischen Kontext. Faktenchecker bleibt deaktiviert
+  // (Weg 2 erlaubt Allgemeinwissen-Fallback).
+  const out = await generate(retrievalQuery, strong, history);
+  // Wenn das LLM "HARM" zurückgibt, übernehmen wir die feste Harm-Antwort,
+  // damit das Modell keinen eigenen Refusal-Text produziert.
+  if (out.text === "HARM") {
+    return {
+      text: HARM_RESPONSE.text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+  if (out.noAnswer) {
+    return {
+      text: out.text,
+      sources: [],
+      escalated: false,
+      noAnswer: true,
+      refused: false,
+    };
+  }
+
+  // Fail-Safe: URLs aus dem Antworttext streifen, Quellen kommen in eigenem
+  // UI-Bereich. Erlaubt http-Hashtags oder Wort-Schrägstriche bewusst nicht.
+  const cleaned = out.text
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\bwww\.\S+/gi, "")
+    .replace(/\n\s*\n\s*$/g, "")
+    .trim();
+
+  // Quellen werden gezeigt, wenn die Antwort NICHT mit dem Allgemeinwissen-
+  // Marker beginnt UND tatsächlich retrievte Auszüge da waren.
+  const fromGeneral = /^allgemeinwissen\s*:/i.test(cleaned);
+  const showSources = !fromGeneral && strong.length > 0;
+  return {
+    text: cleaned,
+    sources: showSources ? dedupeSources(strong) : [],
+    escalated: false,
+    noAnswer: false,
+    refused: false,
+  };
+}
