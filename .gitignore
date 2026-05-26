@@ -8,3 +8,4 @@ data/
 qdrant_storage/
 klexikon-dump/
 *.tsbuildinfo
+.vercel

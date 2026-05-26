@@ -1,10 +1,20 @@
-import { QdrantClient } from "@qdrant/js-client-rest";
 import { config } from "../config.js";
 
-export const qdrant = new QdrantClient({
-  url: config.qdrantUrl,
-  apiKey: config.qdrantApiKey || undefined,
-});
+// Lazy-Init des Qdrant-Clients. Wird nur bei RETRIEVAL_PROVIDER=local
+// gebraucht; im Default-Modus (online) wird @qdrant/js-client-rest gar
+// nicht erst geladen. Wichtig fuer Vercel: dort ist das Modul nicht im
+// Function-Bundle.
+type QdrantClientType = import("@qdrant/js-client-rest").QdrantClient;
+let _qdrant: QdrantClientType | null = null;
+async function getQdrant(): Promise<QdrantClientType> {
+  if (_qdrant) return _qdrant;
+  const { QdrantClient } = await import("@qdrant/js-client-rest");
+  _qdrant = new QdrantClient({
+    url: config.qdrantUrl,
+    apiKey: config.qdrantApiKey || undefined,
+  });
+  return _qdrant;
+}
 
 export type WikiSourceId = "klexikon" | "grundschulwiki";
 
@@ -27,6 +37,7 @@ export async function searchChunks(
   embedding: number[],
   topK = 5,
 ): Promise<Hit[]> {
+  const qdrant = await getQdrant();
   const result = await qdrant.search(config.qdrantCollection, {
     vector: embedding,
     limit: topK,
@@ -39,6 +50,7 @@ export async function searchChunks(
 }
 
 export async function ensureCollection(vectorSize: number): Promise<void> {
+  const qdrant = await getQdrant();
   const collections = await qdrant.getCollections();
   const exists = collections.collections.some(
     (c) => c.name === config.qdrantCollection,
