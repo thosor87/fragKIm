@@ -2,14 +2,29 @@ import { config } from "../config.js";
 
 // Lazy-Init des Qdrant-Clients. Wird nur bei RETRIEVAL_PROVIDER=local
 // gebraucht; im Default-Modus (online) wird @qdrant/js-client-rest gar
-// nicht erst geladen. Wichtig fuer Vercel: dort ist das Modul nicht im
-// Function-Bundle.
-type QdrantClientType = import("@qdrant/js-client-rest").QdrantClient;
-let _qdrant: QdrantClientType | null = null;
-async function getQdrant(): Promise<QdrantClientType> {
+// nicht geladen. Wichtig fuer Vercel: das Paket steht in
+// optionalDependencies und wird im Production-Build ausgelassen.
+// Deshalb verwenden wir hier kein Type-Import (sonst scheitert tsc,
+// wenn das Paket nicht installiert ist).
+type QdrantClientLike = {
+  search: (col: string, params: Record<string, unknown>) => Promise<
+    { score?: number; payload?: unknown }[]
+  >;
+  getCollections: () => Promise<{ collections: { name: string }[] }>;
+  createCollection: (col: string, opts: unknown) => Promise<unknown>;
+  getCollection: (col: string) => Promise<{
+    config?: { params?: { vectors?: unknown } };
+  }>;
+  deleteCollection: (col: string) => Promise<unknown>;
+  upsert: (col: string, params: unknown) => Promise<unknown>;
+};
+let _qdrant: QdrantClientLike | null = null;
+async function getQdrant(): Promise<QdrantClientLike> {
   if (_qdrant) return _qdrant;
-  const { QdrantClient } = await import("@qdrant/js-client-rest");
-  _qdrant = new QdrantClient({
+  const mod = (await import("@qdrant/js-client-rest" as string)) as {
+    QdrantClient: new (opts: { url: string; apiKey?: string }) => QdrantClientLike;
+  };
+  _qdrant = new mod.QdrantClient({
     url: config.qdrantUrl,
     apiKey: config.qdrantApiKey || undefined,
   });

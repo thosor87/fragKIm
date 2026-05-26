@@ -16,9 +16,13 @@ let localPipeline: LocalPipeline | null = null;
 
 async function getLocalPipeline(): Promise<LocalPipeline> {
   if (localPipeline) return localPipeline;
-  const { pipeline } = await import("@huggingface/transformers");
-  // multilingual-e5-base: 768 Dimensionen, ~280 MB Download beim ersten Lauf
-  const p = await pipeline(
+  // import-Pfad als string-cast: in Vercel-Production ist @huggingface/transformers
+  // nicht installiert (optionalDependency), tsc soll das Modul nicht statisch
+  // auflösen. Aufruf wird nur bei EMBEDDING_PROVIDER=local erreicht.
+  const mod = (await import("@huggingface/transformers" as string)) as {
+    pipeline: (task: string, model: string) => Promise<unknown>;
+  };
+  const p = await mod.pipeline(
     "feature-extraction",
     "Xenova/multilingual-e5-base",
   );
