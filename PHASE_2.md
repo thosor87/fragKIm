@@ -41,6 +41,12 @@ Trägerschaft + Finanzierung + DSFA stehen.
   Output-Klassifikator (zweite LLM-Stufe), oder kommerzielle
   Moderations-API. Catcht Halluzinationen und subtilere Probleme,
   die unsere Trigger nicht abdecken.
+  → **Umgesetzt:** Mistral Moderation API (EU) als Stufe 2, prüft die
+  generierten Allgemeinwissen-Antworten (ohne Quellbeleg). Treffer →
+  verwerfen + feste Meldung; `selfharm` eskaliert zur Nummer gegen Kummer,
+  `hate_and_discrimination` deckt Mobbing-Inhalte ab. Siehe
+  `backend/src/rag/moderation.ts`. Offen bleibt: jede Antwort prüfen (statt
+  nur Allgemeinwissen), kindspezifischer Prompt-Check für subtilen Ton.
 - **Input-Filter** für Schul-Mobbing-Kontext (Namen aus Klassenlisten
   hardcoded ausblenden? oder LLM-basiertes „ist das eine konkrete
   Privatperson"-Pattern).

@@ -27,6 +27,7 @@ import {
 } from "../triggers.js";
 import { generate, noAnswer } from "./generator.js";
 import { rewriteQuery } from "./rewrite.js";
+import { moderateOutput, MODERATION_BLOCK_RESPONSE } from "./moderation.js";
 
 export type Source = {
   title: string;
@@ -208,6 +209,31 @@ export async function ask(
     .replace(/\bwww\.\S+/gi, "")
     .replace(/\n\s*\n\s*$/g, "")
     .trim();
+
+  // Output-Moderation (Stufe 2): nur Allgemeinwissen-Antworten prüfen, weil
+  // die ohne Quellbeleg aus dem Modellwissen stammen. Geprüfte Klexikon-/
+  // Grundschulwiki-Antworten überspringen wir (vertrauenswürdige Quelle).
+  if (out.fromGeneralKnowledge) {
+    const verdict = await moderateOutput(cleaned);
+    if (verdict.action === "escalate") {
+      return {
+        text: ESCALATION_RESPONSE.text,
+        sources: ESCALATION_RESPONSE.sources,
+        escalated: true,
+        noAnswer: false,
+        refused: false,
+      };
+    }
+    if (verdict.action === "block") {
+      return {
+        text: MODERATION_BLOCK_RESPONSE.text,
+        sources: [],
+        escalated: false,
+        noAnswer: false,
+        refused: true,
+      };
+    }
+  }
 
   // Quellen werden gezeigt, wenn die Antwort NICHT aus Allgemeinwissen kommt
   // (Flag aus dem Generator, sprachunabhängig) UND Auszüge da waren.
