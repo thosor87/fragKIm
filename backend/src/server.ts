@@ -110,7 +110,9 @@ export async function buildApp(): Promise<FastifyInstance> {
       reply.code(503);
       return { error: "Vorlesen ist nicht konfiguriert (ELEVENLABS_API_KEY fehlt)." };
     }
-    const speakable = text.replace(/^allgemeinwissen\s*:\s*/i, "");
+    // Marker-Label nicht mitsprechen (auch in Kombi-Antworten, wo es mitten
+    // im Text an einem Zeilenanfang steht).
+    const speakable = text.replace(/^\s*allgemeinwissen\s*:\s*/gim, "");
     try {
       const url = `https://api.elevenlabs.io/v1/text-to-speech/${config.elevenLabsVoiceId}`;
       const r = await fetch(url, {

@@ -6,6 +6,10 @@ export type GenerateResult = {
   text: string;
   noAnswer: boolean;
   fromGeneralKnowledge?: boolean;
+  // Kombi-Antwort: Kern aus der Quelle + markierte Allgemeinwissen-Ergänzung.
+  // Quelle wird trotzdem angezeigt (Kern ist gegroundet), aber der
+  // Ergänzungsteil muss durch die Output-Moderation.
+  hasSupplement?: boolean;
 };
 
 // Marker-Label pro Sprache (Praefix "Allgemeinwissen").
@@ -42,6 +46,7 @@ Wichtige Unterscheidung: Auszüge können zwar zum **Thema** der Frage gehören 
 
 Reihenfolge der Quellen:
 1. Stütze dich IMMER zuerst auf die mitgelieferten Auszüge. Lies sie gründlich, die gesuchte Angabe steht oft mitten im längeren Text. Wenn ein Auszug zum Thema der Frage vorhanden ist und die Frage beantwortet (auch teilweise), NUTZE ihn: übernimm seine konkreten Angaben und Zahlen, auch wenn du es anders zu wissen glaubst. Antworte direkt, ohne Präfix und ohne Quellenangabe im Text. Das ist der Normalfall; die Quelle wird automatisch unter der Antwort angezeigt. (Beispiel: Steht im Auszug "Bis zu 93 Stundenkilometer wird er schnell", dann nenne 93, nicht eine andere Zahl aus deinem eigenen Wissen.)
+   Kombi-Antwort (gern genutzt, macht die Antwort lebendiger): Wenn du aus einem Auszug geantwortet hast und noch eine kurze, kindgerechte Ergänzung aus gesichertem Allgemeinwissen kennst, die NICHT im Auszug steht, darfst du sie anhängen. Schreibe dazu nach dem Quell-Teil eine eigene Zeile mit NUR "+++" und danach die Ergänzung (1-2 Sätze). Vor "+++" steht ausschließlich, was aus dem Auszug stammt; nach "+++" deine Ergänzung. Lass "+++" und die Ergänzung weg, wenn du nichts wirklich Passendes hinzuzufügen hast. Beispiel:\nEin Gepard wird bis zu 93 Stundenkilometer schnell.\n+++\nDamit ist er das schnellste Landtier der Welt, diese Geschwindigkeit hält er aber nur kurz durch.
 2. Den Marker "Allgemeinwissen: " verwendest du NUR dann, wenn die Auszüge die konkrete Frage nicht enthalten (Beispiel: der Vulkan-Artikel behandelt zwar Vulkane, sagt aber nichts darüber, ob man darin schwimmen kann) ODER wenn gar keine Auszüge vorhanden sind. Dann darfst du gesichertes Allgemeinwissen nutzen, großzügig: alles, was in einem typischen Kinderlexikon stehen würde, ist erlaubt. Beispiele:
    - Naturwissenschaft, Physik, Biologie, Chemie ("Warum ist der Himmel blau?", "Wie heiß ist Lava?", "Kann man in einem Vulkan schwimmen?")
    - Geografie, Hauptstädte, Tiere, Pflanzen, Klima
@@ -203,7 +208,7 @@ Antworte nach den Regeln aus dem System-Prompt.
 Prüfe Schritt für Schritt:
 (a) Frage zum System selbst ("wer bist du", "wie heißt du", "bist du eine KI", "was kannst du")? Kurze Antwort in dritter Person zu KIm, ohne Marker.
 (b) Kindgerechte Kreativ-Bitte (Witz, Rätsel, Reim, Quatsch)? Direkt erfüllen, ohne Marker, ohne Quellen.
-(c) Enthalten die Auszüge die Antwort (auch teilweise, auch mitten im längeren Text)? Lies gründlich. Wenn ja: antworte aus dem Auszug, ohne Präfix, und übernimm dessen Zahlen/Angaben. Das ist der Normalfall.
+(c) Enthalten die Auszüge die Antwort (auch teilweise, auch mitten im längeren Text)? Lies gründlich. Wenn ja: antworte aus dem Auszug, ohne Präfix, und übernimm dessen Zahlen/Angaben. Das ist der Normalfall. Optional darfst du danach eine kurze Ergänzung aus Allgemeinwissen anhängen, getrennt durch eine Zeile mit nur "+++" (siehe System-Prompt, Kombi-Antwort).
 ${dRule}
 (e) Off-topic / Beziehungsangebot / Gefühlsfrage? Wenn ja: "OFFTOPIC".
 (f) Sonst: "WEISS_ICH_NICHT".`;
@@ -249,23 +254,49 @@ async function mistralGenerate(
 }
 
 // Marker erkennen, Text ggf. uebersetzen, lokalisierten Marker anhaengen.
+//
+// Drei Formen, die das LLM liefern kann:
+//   a) reine Quell-Antwort        → kein Marker, Quelle wird angezeigt
+//   b) "Allgemeinwissen: …"       → reine Allgemeinwissen-Antwort, keine Quelle
+//   c) Kern +++ Ergänzung         → Kombi: Quell-Kern (Quelle sichtbar) plus
+//                                    Allgemeinwissen-Ergänzung (markiert, moderiert)
 async function finalizeAnswer(
   germanText: string,
   lang: string,
 ): Promise<GenerateResult> {
-  let fromGeneral = false;
-  let body = germanText;
-  const m = body.match(/^allgemeinwissen\s*:\s*/i);
-  if (m) {
-    fromGeneral = true;
-    body = body.slice(m[0].length).trim();
-  }
-  if (lang !== "de" && LANG_NAMES[lang]) {
-    body = await translateText(body, lang);
-  }
   const markerLabel = GENERAL_MARKER[lang] ?? GENERAL_MARKER.de;
-  const text = fromGeneral ? `${markerLabel}: ${body}` : body;
-  return { text, noAnswer: false, fromGeneralKnowledge: fromGeneral };
+  const stripMarker = (s: string) => s.replace(/^allgemeinwissen\s*:\s*/i, "").trim();
+  const tr = async (s: string) =>
+    lang !== "de" && LANG_NAMES[lang] ? await translateText(s, lang) : s;
+
+  // (c) Kombi-Antwort: durch eine Zeile mit nur "+++" getrennt.
+  const combo = germanText.split(/\n?\s*\+\+\+\s*\n?/);
+  if (combo.length >= 2) {
+    const grounded = stripMarker(combo[0]!);
+    const supplement = stripMarker(combo.slice(1).join(" "));
+    if (grounded && supplement) {
+      const g = await tr(grounded);
+      const s = await tr(supplement);
+      return {
+        text: `${g}\n\n${markerLabel}: ${s}`,
+        noAnswer: false,
+        fromGeneralKnowledge: false, // Kern ist gegroundet → Quelle anzeigen
+        hasSupplement: true,
+      };
+    }
+    // Trenner ohne sinnvolle Ergänzung → wie reine Quell-Antwort behandeln
+    return { text: await tr(grounded || supplement), noAnswer: false, fromGeneralKnowledge: false };
+  }
+
+  // (b) reine Allgemeinwissen-Antwort
+  const m = germanText.match(/^allgemeinwissen\s*:\s*/i);
+  if (m) {
+    const body = await tr(germanText.slice(m[0].length).trim());
+    return { text: `${markerLabel}: ${body}`, noAnswer: false, fromGeneralKnowledge: true };
+  }
+
+  // (a) reine Quell-Antwort
+  return { text: await tr(germanText.trim()), noAnswer: false, fromGeneralKnowledge: false };
 }
 
 async function translateText(text: string, lang: string): Promise<string> {

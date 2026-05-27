@@ -239,10 +239,11 @@ export async function ask(
     .replace(/\n\s*\n\s*$/g, "")
     .trim();
 
-  // Output-Moderation (Stufe 2): nur Allgemeinwissen-Antworten prüfen, weil
-  // die ohne Quellbeleg aus dem Modellwissen stammen. Geprüfte Klexikon-/
+  // Output-Moderation (Stufe 2): reine Allgemeinwissen-Antworten UND der
+  // Allgemeinwissen-Ergänzungsteil einer Kombi-Antwort werden geprüft, weil
+  // sie ohne Quellbeleg aus dem Modellwissen stammen. Reine Klexikon-/
   // Grundschulwiki-Antworten überspringen wir (vertrauenswürdige Quelle).
-  if (out.fromGeneralKnowledge) {
+  if (out.fromGeneralKnowledge || out.hasSupplement) {
     const verdict = await moderateOutput(cleaned);
     if (verdict.action === "escalate") {
       const esc = escalationResponse(lang);
