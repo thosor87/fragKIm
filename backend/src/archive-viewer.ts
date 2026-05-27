@@ -43,8 +43,10 @@ function renderHtml(opts: {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow,noarchive">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>${esc(title)} — Grundschulwiki-Archiv (fragKIm)</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <meta name="theme-color" content="#2bb3a3">
     <style>
       :root {
         --primary: #2bb3a3;
@@ -58,15 +60,20 @@ function renderHtml(opts: {
       }
       *{box-sizing:border-box}
       html, body { margin: 0; padding: 0; }
+      html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
       body { background: var(--bg); color: var(--text);
         font-family: "Atkinson Hyperlegible", "Lexend", "Nunito",
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 18px; line-height: 1.65;
-        -webkit-font-smoothing: antialiased; }
+        -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent; }
       .banner { position: sticky; top: 0; z-index: 10;
         background: var(--text); color: #fff; text-align: center;
         font-size: 14px; padding: 8px 16px; }
-      .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+      .wrap { max-width: 760px; margin: 0 auto;
+        padding: 24px 16px 64px;
+        padding-left: max(16px, env(safe-area-inset-left, 16px));
+        padding-right: max(16px, env(safe-area-inset-right, 16px)); }
       .crumbs { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
       .crumbs a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
       h1 { font-size: 36px; line-height: 1.15; margin: 0 0 8px;
@@ -103,6 +110,27 @@ function renderHtml(opts: {
         border-radius: 12px; }
       .footer a { color: var(--muted); }
       .empty { padding: 24px 28px; color: var(--muted); }
+
+      @media (max-width: 520px) {
+        body { font-size: 17px; line-height: 1.6; }
+        .banner { font-size: 13px; padding: 6px 12px; }
+        .wrap { padding: 16px 14px 40px; }
+        h1 { font-size: 26px; gap: 8px; }
+        .archive-badge { font-size: 12px; padding: 3px 10px; }
+        .article { padding: 18px 18px; border-radius: 14px; }
+        .article h2 { font-size: 20px; margin: 22px 0 8px; }
+        .article h3 { font-size: 18px; margin: 18px 0 6px; }
+        .article h4 { font-size: 17px; margin: 16px 0 4px; }
+        .article ul, .article ol { padding-left: 22px; }
+        .wt-figure { margin: 14px -4px; padding: 8px;
+          border-radius: 10px; }
+        .footer { padding: 12px 14px; font-size: 12px;
+          line-height: 1.55; border-radius: 10px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+      }
     </style>
   </head>
   <body>

@@ -2,46 +2,67 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <!-- Suchmaschinen weiterhin aussperren (PoC, keine DSFA) -->
+    <!-- PoC: keine Indexierung, aber Linkvorschau erlaubt -->
     <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="googlebot" content="noindex,nofollow,noarchive" />
     <meta name="referrer" content="no-referrer" />
+    <meta name="format-detection" content="telephone=no" />
 
-    <title>frag KIm — interne Demo</title>
+    <title>frag KIm — Kindersichere Wissens-KI (interne Demo)</title>
     <meta
       name="description"
-      content="frag KIm ist ein Proof-of-Concept einer kindersicheren KI-Wissensauskunft, angelehnt an fragFINN, mit Klexikon als Quelle. Interne Entwicklungs-Demo, nicht für Kinder bestimmt."
+      content="frag KIm ist ein Proof of Concept einer kindersicheren KI-Wissensauskunft. Antworten aus Klexikon und Grundschulwiki, RAG-Architektur, EU-gehostet. Interne Entwicklungs-Demo, nicht für Kinder bestimmt."
     />
+    <meta name="author" content="Thomas Soring" />
+    <meta name="keywords" content="KI Kinder, Kinderlexikon, fragFINN-Alternative, Klexikon, Grundschulwiki, kindersichere KI, RAG, EU-KI" />
+    <meta name="application-name" content="frag KIm" />
+    <meta name="apple-mobile-web-app-title" content="frag KIm" />
 
-    <!-- Linkvorschau für Slack, WhatsApp, Mail, Discord -->
+    <!-- Open Graph für Slack, WhatsApp, Mail, LinkedIn -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="frag KIm — interne Demo" />
+    <meta property="og:site_name" content="frag KIm" />
+    <meta property="og:title" content="frag KIm — Kindersichere Wissens-KI" />
     <meta
       property="og:description"
-      content="Kindersichere KI-Wissensauskunft (Proof of Concept). RAG über Klexikon, Mistral LLM, EU-gehostet. Interne Demo, nicht für Kinder bestimmt."
+      content="Antworten aus Klexikon und Grundschulwiki, kindgerecht zusammengefasst von einer KI. EU-gehostet, RAG-Architektur. Interne Demo, nicht für Kinder bestimmt."
     />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://fragkim.vercel.app/" />
+    <meta property="og:image" content="https://fragkim.vercel.app/og-image.png" />
+    <meta property="og:image:secure_url" content="https://fragkim.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="frag KIm Logo mit Glühbirne und Hinweis: interne Entwicklungs-Demo" />
+    <meta property="og:image:alt" content="frag KIm — Glühbirnen-Logo, Untertitel: Kindersichere Wissens-KI, Tags: RAG, EU-Hosting, Proof of Concept" />
     <meta property="og:locale" content="de_DE" />
 
-    <!-- Twitter / X Card -->
+    <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="frag KIm — interne Demo" />
+    <meta name="twitter:title" content="frag KIm — Kindersichere Wissens-KI" />
     <meta
       name="twitter:description"
-      content="Kindersichere KI-Wissensauskunft (PoC). RAG über Klexikon, EU-gehostet. Nicht für Kinder bestimmt."
+      content="Antworten aus Klexikon und Grundschulwiki, kindgerecht zusammengefasst von einer KI. EU-gehostet. Interne Demo, nicht für Kinder bestimmt."
     />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta name="twitter:image" content="https://fragkim.vercel.app/og-image.png" />
+    <meta name="twitter:image:alt" content="frag KIm Logo mit Glühbirne, Untertitel Kindersichere Wissens-KI" />
 
-    <!-- Favicon -->
+    <!-- Icons & Manifest -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- Theme color für mobile Browser -->
-    <meta name="theme-color" content="#2bb3a3" />
+    <!-- Theme & Display -->
+    <meta name="theme-color" content="#2bb3a3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#2bb3a3" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <link rel="canonical" href="https://fragkim.vercel.app/" />
 
     <link rel="stylesheet" href="/src/styles.css" />
   </head>

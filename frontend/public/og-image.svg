@@ -1,33 +1,78 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <!-- Hintergrund cremeweiß -->
-  <rect width="1200" height="630" fill="#FBF8F3"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FBF8F3"/>
+      <stop offset="100%" stop-color="#F2EBDC"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD978"/>
+      <stop offset="100%" stop-color="#FFC857" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
 
-  <!-- Demo-Banner oben -->
-  <rect width="1200" height="56" fill="#2A2D34"/>
-  <text x="600" y="38" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="500" fill="#ffffff" text-anchor="middle">
-    Interne Entwicklungs-Demo. Nicht für Kinder bestimmt.
-  </text>
+  <!-- Hintergrund -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
 
-  <!-- Logo: Glühbirne -->
-  <g transform="translate(420, 180)">
-    <circle cx="60" cy="50" r="50" fill="#FFC857"/>
-    <rect x="32" y="100" width="56" height="16" rx="5" fill="#2A2D34"/>
-    <rect x="38" y="120" width="44" height="9" rx="3" fill="#2A2D34"/>
+  <!-- Dezenter Akzent-Streifen oben -->
+  <rect x="0" y="0" width="1200" height="6" fill="#2bb3a3"/>
+
+  <!-- Soft glow hinter der Birne -->
+  <circle cx="220" cy="290" r="220" fill="url(#glow)"/>
+
+  <!-- Glühbirne: groß, links -->
+  <g transform="translate(120, 170)">
+    <!-- Birnenkopf -->
+    <circle cx="100" cy="100" r="100" fill="#FFC857"/>
+    <!-- subtile Highlights -->
+    <ellipse cx="70" cy="70" rx="32" ry="22" fill="#FFE9A6" opacity="0.7"/>
+    <!-- Sockel -->
+    <rect x="48" y="200" width="104" height="32" rx="9" fill="#2A2D34"/>
+    <rect x="58" y="238" width="84" height="20" rx="7" fill="#2A2D34"/>
+    <rect x="68" y="264" width="64" height="14" rx="5" fill="#2A2D34"/>
   </g>
 
-  <!-- Marke -->
-  <text x="540" y="260" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="120" font-weight="700" fill="#2A2D34" dominant-baseline="middle">
-    frag KIm
-  </text>
+  <!-- Marke und Untertitel rechts -->
+  <g transform="translate(420, 0)">
+    <text x="0" y="245" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="138" font-weight="800" fill="#2A2D34" letter-spacing="-3">
+      frag KIm
+    </text>
+    <text x="6" y="305" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="500" fill="#2bb3a3" letter-spacing="2">
+      KINDERSICHERE WISSENS-KI
+    </text>
 
-  <!-- Untertitel -->
-  <text x="600" y="380" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="36" font-weight="400" fill="#2A2D34" text-anchor="middle">
-    Kindersichere KI-Wissensauskunft
-  </text>
-  <text x="600" y="430" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="28" font-weight="400" fill="#6b6f78" text-anchor="middle">
-    RAG über Klexikon · Mistral · EU-gehostet · Proof of Concept
-  </text>
+    <!-- Trennlinie -->
+    <rect x="6" y="335" width="60" height="3" fill="#2A2D34" opacity="0.3"/>
 
-  <!-- Akzent-Linie unten -->
-  <rect x="0" y="600" width="1200" height="30" fill="#2bb3a3"/>
+    <text x="6" y="390" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="400" fill="#2A2D34">
+      Antworten aus Klexikon und Grundschulwiki,
+    </text>
+    <text x="6" y="428" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="400" fill="#2A2D34">
+      kindgerecht zusammengefasst von einer KI.
+    </text>
+
+    <!-- Tags -->
+    <g transform="translate(6, 470)">
+      <g>
+        <rect x="0" y="0" width="92" height="34" rx="17" fill="#2A2D34"/>
+        <text x="46" y="23" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">RAG</text>
+      </g>
+      <g transform="translate(104,0)">
+        <rect x="0" y="0" width="120" height="34" rx="17" fill="#2bb3a3"/>
+        <text x="60" y="23" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">EU-Hosting</text>
+      </g>
+      <g transform="translate(236,0)">
+        <rect x="0" y="0" width="150" height="34" rx="17" fill="#FFC857"/>
+        <text x="75" y="23" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#2A2D34" text-anchor="middle">Proof of Concept</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer-Bereich -->
+  <rect x="0" y="585" width="1200" height="45" fill="#2A2D34"/>
+  <text x="60" y="614" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="500" fill="#FFFFFF">
+    Interne Entwicklungs-Demo. Nicht für Kinder bestimmt.
+  </text>
+  <text x="1140" y="614" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="400" fill="#FFC857" text-anchor="end">
+    fragkim.vercel.app
+  </text>
 </svg>

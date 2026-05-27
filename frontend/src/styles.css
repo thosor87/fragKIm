@@ -32,7 +32,12 @@ html, body, #root {
   font-size: 18px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
+html { scroll-behavior: smooth; }
+body { overscroll-behavior-y: contain; }
 
 #root {
   display: flex;
@@ -232,6 +237,9 @@ html, body, #root {
   background: var(--bg);
   border-top: 1px solid var(--border);
   padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  padding-left: max(16px, env(safe-area-inset-left, 16px));
+  padding-right: max(16px, env(safe-area-inset-right, 16px));
   z-index: 15;
 }
 .composer-inner {
@@ -341,9 +349,83 @@ html, body, #root {
 .footer a { color: var(--muted); }
 
 @media (max-width: 520px) {
+  html, body, #root { font-size: 17px; }
+  .demo-banner { font-size: 13px; padding: 6px 12px; }
+  .brand {
+    padding: 14px 14px 4px;
+    gap: 8px;
+  }
   .brand h1 { font-size: 22px; }
-  .chat { padding-bottom: 120px; }
-  .footer { padding-bottom: 110px; }
+  .brand-mark svg { width: 30px; height: 30px; }
+  .reset {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .sources-bar {
+    padding: 0 12px;
+    margin-top: 6px;
+    gap: 6px;
+  }
+  .source-toggle {
+    font-size: 13px;
+    padding: 7px 12px;
+    min-height: 32px;
+  }
+
+  .chat {
+    padding: 8px 12px 130px;
+  }
+  .bubbles { gap: 10px; }
+  .bubble {
+    max-width: 92%;
+    padding: 10px 14px;
+    font-size: 16px;
+  }
+  .bubble-image {
+    max-width: 100%;
+  }
+  .bubble-actions .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .composer {
+    padding: 8px 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+  .composer-inner { gap: 6px; }
+  .composer .input-wrap textarea {
+    font-size: 16px; /* >=16px verhindert iOS-Zoom beim Fokus */
+    padding: 10px 14px;
+    line-height: 1.35;
+  }
+  .composer .input-wrap.has-mic textarea {
+    padding-right: 48px;
+  }
+  .composer .icon-btn.mic-inline {
+    width: 36px; height: 36px;
+    right: 4px; bottom: 4px;
+  }
+  .composer .send-btn {
+    font-size: 15px;
+    padding: 10px 14px;
+  }
+
+  .footer {
+    font-size: 12px;
+    padding: 8px 12px 110px;
+    line-height: 1.5;
+  }
+  .hint { padding: 20px 8px; font-size: 16px; }
+}
+
+@media (max-width: 360px) {
+  .composer .send-btn {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .source-toggle { font-size: 12px; padding: 6px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
