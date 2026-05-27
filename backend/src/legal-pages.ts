@@ -278,11 +278,32 @@ const DATENSCHUTZ_BODY = `
     Interesse an den Demo-Funktionen).
   </p>
 
-  <h2>7. Keine Webanalyse, kein Tracking</h2>
+  <h2>7. Webanalyse (Umami)</h2>
   <p>
-    Diese Anwendung nutzt <strong>keine Webanalyse-Tools, keine
-    Tracking-Cookies, keine Pixel und keine Drittanbieter-Werbung</strong>.
-    Es werden keine Profile gebildet.
+    Diese Anwendung nutzt <strong>Umami</strong>, eine datenschutzfreundliche,
+    selbst gehostete Webanalyse-Software, betrieben auf eigenem Server
+    unter <code>analytics.soring.de</code>.
+  </p>
+  <p>Umami ist so konfiguriert, dass:</p>
+  <ul>
+    <li><strong>keine Cookies</strong> gesetzt werden</li>
+    <li><strong>keine personenbezogenen Daten</strong> erfasst oder gespeichert werden</li>
+    <li><strong>kein geräteübergreifendes Tracking</strong> stattfindet</li>
+    <li>IP-Adressen <strong>nicht</strong> gespeichert werden</li>
+    <li>die Skripte <strong>nicht</strong> auf den Pflichtseiten (Impressum,
+      Datenschutz) geladen werden</li>
+  </ul>
+  <p>
+    Es werden ausschließlich anonymisierte, aggregierte Nutzungsstatistiken
+    erhoben (Seitenaufrufe, Browser, Land). Ein Rückschluss auf einzelne
+    Personen ist nicht möglich. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO
+    (berechtigtes Interesse an der Analyse der Demo-Nutzung).
+  </p>
+  <p>
+    Über die Webanalyse hinaus nutzt diese Anwendung
+    <strong>keine weiteren Tracking-Tools, keine Tracking-Cookies, keine
+    Pixel und keine Drittanbieter-Werbung</strong>. Es werden keine
+    Nutzerprofile gebildet.
   </p>
 
   <h2>8. SSL/TLS-Verschlüsselung</h2>

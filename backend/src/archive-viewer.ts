@@ -47,6 +47,7 @@ function renderHtml(opts: {
     <title>${esc(title)} — Grundschulwiki-Archiv (fragKIm)</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <meta name="theme-color" content="#2bb3a3">
+    <script defer src="https://analytics.soring.de/script.js" data-website-id="80b5fe08-2b0d-4c67-8c46-6d814f42d2ae"></script>
     <style>
       :root {
         --primary: #2bb3a3;
