@@ -513,10 +513,6 @@ export function App() {
         <nav className="footer-links" aria-label={t("footerNavLabel")}>
           <a href={`/ueber?lang=${lang}`}>{t("footerAbout")}</a>
           <span aria-hidden="true">·</span>
-          <a href="https://klexikon.zum.de/" target="_blank" rel="noopener noreferrer">Klexikon</a>
-          <span aria-hidden="true">·</span>
-          <a href="https://grundschulwiki.zum.de/" target="_blank" rel="noopener noreferrer">Grundschulwiki</a>
-          <span aria-hidden="true">·</span>
           <a href="/impressum">{t("footerImprint")}</a>
           <span aria-hidden="true">·</span>
           <a href="/datenschutz">{t("footerPrivacy")}</a>

@@ -59,9 +59,6 @@ Trägerschaft + Finanzierung + DSFA stehen.
 
 ### Aufklärung
 
-- **Eltern-Information**: kurzes Dokument, was die KI macht und nicht macht,
-  plus klare Abgrenzung zu Companion-Bots.
-
 > Bewusst **nicht** geplant: Lehrer-Mitlese-Funktionen, Dashboards mit
 > Frage-Inhalten, individuelle oder klassenbezogene Aktivitäts-Auswertung.
 > Das widerspricht der unbegleiteten, datensparsamen Linie (siehe README
@@ -133,3 +130,5 @@ Stand: [`README.md`](./README.md).
   reduced-motion, Screenreader-Status
 - ~~Mobbing-Opfer-Eskalation, Grounding-Fix, Kombi-Antworten~~ → siehe
   v0.3.0 im CHANGELOG
+- ~~Eltern-Information~~ → mehrsprachige Seite „Für Eltern" unter `/ueber`
+  (was die KI macht/nicht macht, Companion-Abgrenzung), siehe v0.4.0

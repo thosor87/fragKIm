@@ -66,6 +66,8 @@ mehrschichtige Sicherheits-Leitplanken.
 - **Archive-Viewer** unter `/archive/grundschulwiki/:title`: jeder
   archivierte Artikel als lesbare HTML-Seite mit Bildern und internen Links.
   Funktioniert auch nach der Abschaltung des Original-Wikis.
+- **Eltern-/Lehrkräfte-Seite** unter `/ueber` (mehrsprachig): erklärt, was die
+  KI macht, was sie bewusst nicht macht, und die Abgrenzung zu Companion-Bots.
 
 ## Wie es sich einordnet
 
@@ -247,6 +249,7 @@ Login; öffentlich erreichbar sind nur wenige Pfade.
 | POST | `/api/speak` | Antwort vorlesen (TTS) | ja |
 | POST | `/api/transcribe` | Spracheingabe (STT) | ja |
 | GET | `/archive/grundschulwiki/:title` | archivierter Artikel als HTML | ja |
+| GET | `/ueber` | Info für Eltern/Lehrkräfte (mehrsprachig via `?lang=`) | öffentlich |
 | GET | `/impressum`, `/datenschutz` | Rechtstexte | öffentlich |
 | GET | `/healthz` | Health-Check | öffentlich |
 | GET | `/robots.txt` | Suchmaschinen-Sperre | öffentlich |

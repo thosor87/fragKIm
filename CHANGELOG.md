@@ -4,6 +4,26 @@ Alle nennenswerten Änderungen an frag KIm. Format angelehnt an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.4.0] – 2026-05-27
+
+### Hinzugefügt
+- **Eltern-/Lehrkräfte-Seite** unter `/ueber`, öffentlich (ohne Login) und
+  **mehrsprachig** (de/en/tr/ru/uk/ar, RTL für Arabisch): erklärt, was frag
+  KIm macht, was es bewusst nicht macht (Companion-Abgrenzung, keine
+  Überwachung, kein Speichern), wie die Sicherheit funktioniert und was mit
+  den Eingaben passiert. Footer-Link „Für Eltern" führt die aktuelle UI-
+  Sprache mit; Rechtsseiten verlinken die Seite quer.
+
+### Geändert
+- Kombi-Antwort-Intro konsistent zu „Aus dem Allgemeinwissen":
+  „Schon gewusst (aus dem Allgemeinwissen)? …".
+- Footer verschlankt: die Wiki-Links (Klexikon/Grundschulwiki) sind raus, da
+  Quellen ohnehin unter jeder Antwort und auf der Eltern-Seite stehen. Es
+  bleiben „Für Eltern", Impressum, Datenschutz, Quellcode.
+- Dokumentation überarbeitet: README deutlich ausgebaut (Architektur,
+  Sicherheit, Abgrenzung „Was es nicht macht", Endpunkte, Datenfluss);
+  CLAUDE.md auf zeitlose Leitplanken eingedampft; PHASE_2 bereinigt.
+
 ## [0.3.0] – 2026-05-27
 
 ### Hinzugefügt
@@ -100,6 +120,7 @@ Erster Demo-Release.
 - Single-Password-Auth mit Cookie + Magic-Link, Impressum/Datenschutz.
 - Deployment auf Vercel, Domain fragkim.lilapixel.de.
 
+[0.4.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.4.0
 [0.3.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.3.0
 [0.2.1]: https://github.com/thosor87/fragKIm/releases/tag/v0.2.1
 [0.2.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.2.0
