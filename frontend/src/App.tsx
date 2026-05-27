@@ -521,6 +521,7 @@ export function App() {
           <span aria-hidden="true">·</span>
           <a href="https://github.com/thosor87/fragKIm" target="_blank" rel="noopener noreferrer">{t("footerSource")}</a>
         </nav>
+        <span className="footer-version" aria-hidden="true">v{__APP_VERSION__}</span>
       </footer>
     </>
   );

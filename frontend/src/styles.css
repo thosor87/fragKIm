@@ -453,6 +453,13 @@ main:focus-visible { outline: none; }
   font-size: 12px;
 }
 .footer-links span { opacity: 0.4; }
+.footer-version {
+  align-self: flex-end;
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.35;
+  letter-spacing: 0.02em;
+}
 .footer a {
   color: var(--muted);
   text-decoration: none;
