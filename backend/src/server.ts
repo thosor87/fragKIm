@@ -114,7 +114,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     // Allgemeinwissen-Antworten sowie der Klammerzusatz "(Allgemeinwissen)"
     // im Kombi-Intro ("Schon gewusst (Allgemeinwissen)?" → "Schon gewusst?").
     const speakable = text
-      .replace(/^\s*allgemeinwissen\s*:\s*/gim, "")
+      .replace(/^\s*(aus dem )?allgemeinwissen\s*:\s*/gim, "")
       .replace(/\s*\(allgemeinwissen\)\s*/gi, " ");
     try {
       const url = `https://api.elevenlabs.io/v1/text-to-speech/${config.elevenLabsVoiceId}`;

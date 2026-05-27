@@ -4,6 +4,28 @@ Alle nennenswerten Änderungen an frag KIm. Format angelehnt an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.3.0] – 2026-05-27
+
+### Hinzugefügt
+- **Kombi-Antworten**: Eine Quell-Antwort kann um eine kurze, klar
+  markierte Allgemeinwissen-Ergänzung erweitert werden (Klexikon-Fakt plus
+  erläuternder Zusatz, eingeleitet mit „Schon gewusst (Allgemeinwissen)?").
+  Der Quell-Kern bleibt gegroundet und behält die Quelle; der
+  Ergänzungsteil läuft zusätzlich durch die Output-Moderation. Wird nur
+  angehängt, wenn er echten Mehrwert bietet.
+- README deutlich ausgebaut: ausführliche Abschnitte zu Architektur (mit
+  Ablaufdiagramm) und zu den Sicherheitsmechanismen.
+
+### Geändert
+- **Grounding-Fix (wichtig):** Antworten greifen jetzt zuerst auf
+  Klexikon/Grundschulwiki und übernehmen deren konkrete Angaben. Vorher
+  markierte das LLM fast jede Antwort als „Allgemeinwissen", obwohl der
+  passende Artikel vorlag, und blendete so die Quellen aus. Schlimmer: bei
+  „Wie schnell läuft ein Gepard?" überschrieb es die Klexikon-Angabe
+  (93 km/h) mit eigenem Wissen (130 km/h). Jetzt kommt 93, mit Quelle.
+- Marker reiner Allgemeinwissen-Antworten: „Aus dem Allgemeinwissen: …"
+  statt des nackten „Allgemeinwissen: …".
+
 ## [0.2.1] – 2026-05-27
 
 ### Behoben
@@ -78,6 +100,7 @@ Erster Demo-Release.
 - Single-Password-Auth mit Cookie + Magic-Link, Impressum/Datenschutz.
 - Deployment auf Vercel, Domain fragkim.lilapixel.de.
 
+[0.3.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.3.0
 [0.2.1]: https://github.com/thosor87/fragKIm/releases/tag/v0.2.1
 [0.2.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.2.0
 [0.1.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.1.0

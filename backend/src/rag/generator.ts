@@ -15,12 +15,12 @@ export type GenerateResult = {
 // Marker-Label pro Sprache (Praefix "Allgemeinwissen") für reine
 // Allgemeinwissen-Antworten.
 const GENERAL_MARKER: Record<string, string> = {
-  de: "Allgemeinwissen",
-  en: "General knowledge",
-  tr: "Genel bilgi",
-  ru: "Общие знания",
-  uk: "Загальні знання",
-  ar: "معرفة عامة",
+  de: "Aus dem Allgemeinwissen",
+  en: "From general knowledge",
+  tr: "Genel bilgiden",
+  ru: "Из общих знаний",
+  uk: "Із загальних знань",
+  ar: "من المعرفة العامة",
 };
 
 // Einleitung der Ergänzung in einer Kombi-Antwort (verspielt, aber mit
