@@ -14,12 +14,16 @@ mehrschichtige Sicherheits-Leitplanken.
 
 - [Was es macht](#was-es-macht)
 - [Wie es sich einordnet](#wie-es-sich-einordnet)
+- [Was es nicht macht](#was-es-nicht-macht)
 - [Stack](#stack)
 - [Projektstruktur](#projektstruktur)
 - [Lokal starten](#lokal-starten)
 - [Konfiguration](#konfiguration)
+- [HTTP-Endpunkte](#http-endpunkte)
 - [Architektur](#architektur)
+- [Antwort-Typen](#antwort-typen)
 - [Sicherheit](#sicherheit)
+- [Datenfluss und Datenschutz](#datenfluss-und-datenschutz)
 - [Mehrsprachigkeit](#mehrsprachigkeit)
 - [Grundschulwiki-Archiv](#grundschulwiki-archiv)
 - [Tests](#tests)
@@ -43,7 +47,7 @@ mehrschichtige Sicherheits-Leitplanken.
 - **Allgemeinwissen-Fallback** für Fragen, die in den Wikis nicht stehen
   (klar gekennzeichnet mit „Aus dem Allgemeinwissen: …"). Als **Kombi-Antwort**
   kann ein Quell-Kern um eine kurze, markierte Zusatzinfo erweitert werden
-  („Schon gewusst (Allgemeinwissen)? …"), aber nur, wenn sie echten Mehrwert
+  („Schon gewusst (aus dem Allgemeinwissen)? …"), aber nur, wenn sie echten Mehrwert
   bietet.
 - **Mehrschichtige Sicherheit**: deterministische Pre-Filter plus
   sprach-agnostische KI-Moderation auf Eingabe und Antwort; bei Notlagen
@@ -76,6 +80,36 @@ Nutzung durch jüngere Kinder** (zu Hause oder in der Freiarbeit), ohne dass
 eine Lehrkraft jeden Prompt moderiert, und **gegroundet auf kuratierte
 Kinderquellen** statt eines offenen Chatbots. Es will keine Konkurrenz sein,
 sondern eine Ergänzung für die Primarstufe.
+
+## Was es nicht macht
+
+Bewusste Nicht-Ziele. Sie schärfen das Produkt und sind für ein
+Kinder-Angebot ein Sicherheits- und Vertrauensmerkmal, kein Mangel.
+
+- **Kein Companion, keine Persona.** Kein „ich", kein Avatar, kein Smalltalk,
+  keine Gefühls- oder Beziehungsfragen ans System. Scharfe Abgrenzung zu
+  Companion-Bots, die Kinder besonders gefährden.
+- **Kein offener Chatbot.** Antworten werden zuerst aus den geprüften Quellen
+  abgeleitet, nicht frei erfunden. Keine Bildgenerierung, keine Code-Ausgabe.
+- **Kein Schreib-/Hausaufgaben-Assistent.** Sachfragen ja, kindgerechte
+  Kreativ-Bitten (Witz, Rätsel, Reim) ja; aber es schreibt keine Aufsätze oder
+  Hausaufgaben „fertig".
+- **Keine Beratung im Einzelfall.** Medizinische, psychische oder rechtliche
+  Einzelfragen werden nicht beraten, sondern an erwachsene Bezugspersonen (bei
+  Notlagen an die Nummer gegen Kummer) verwiesen.
+- **Keine Meinungsbildung zu strittigen Themen**, keine Tagespolitik, keine
+  sich täglich ändernden Fakten.
+- **Keine Lehrer-Aufsicht / Prompt-Einsicht.** Anders als telli/fobizz gibt es
+  keine zentrale Mitlese-Funktion. Gewollt (Privatsphäre), heißt aber auch:
+  kein Klassenraum-Werkzeug.
+- **Keine Konten, kein Tracking, keine Speicherung.** Keine Profile, keine
+  Lernstandsanalyse, keine Benotung.
+- **Keine Werbung, keine Monetarisierung.**
+- **(Noch) nicht für die ungeschützte öffentliche Kindernutzung.** Aktuell PoC
+  hinter einem Login; der offene Betrieb beginnt erst nach Klärung von
+  Trägerschaft, Jugendschutz und souveränem Hosting (siehe Grenzen/Roadmap).
+- **Keine Garantie auf Vollständigkeit oder Fehlerfreiheit.** Es bleibt ein
+  PoC; die Quellen decken nicht jedes Thema ab.
 
 ## Stack
 
@@ -202,6 +236,37 @@ Vercel). Geheimnisse stehen nie im Code.
 | `PUBLIC_DEMO_BANNER` | – | `true` zeigt den „nicht für Kinder"-Banner |
 | `NODE_ENV` / `PORT` | `development` / `8080` | Standard |
 
+## HTTP-Endpunkte
+
+Alles läuft über eine einzige Fastify-App. Die API-Routen liegen hinter dem
+Login; öffentlich erreichbar sind nur wenige Pfade.
+
+| Methode | Pfad | Zweck | Auth |
+|---|---|---|---|
+| POST | `/api/ask` | Frage stellen (RAG-Pipeline) | ja |
+| POST | `/api/speak` | Antwort vorlesen (TTS) | ja |
+| POST | `/api/transcribe` | Spracheingabe (STT) | ja |
+| GET | `/archive/grundschulwiki/:title` | archivierter Artikel als HTML | ja |
+| GET | `/impressum`, `/datenschutz` | Rechtstexte | öffentlich |
+| GET | `/healthz` | Health-Check | öffentlich |
+| GET | `/robots.txt` | Suchmaschinen-Sperre | öffentlich |
+
+`/api/ask` nimmt JSON (`question` max. 500 Zeichen, optional `history`,
+`sources`, `lang`) und liefert:
+
+```json
+{
+  "text": "…",
+  "sources": [{ "title": "…", "url": "…", "imageUrl": "…", "wiki": "klexikon" }],
+  "escalated": false,
+  "noAnswer": false,
+  "refused": false
+}
+```
+
+Rate-Limit pro IP: `/api/ask` 30/min, `/api/speak` + `/api/transcribe`
+zusammen 20/min (konfigurierbar).
+
 ## Architektur
 
 frag KIm ist ein RAG-System (Retrieval-Augmented Generation): Die Antwort
@@ -273,6 +338,21 @@ mehrsprachig antworten zu lassen).
 Verläufe, kein Tracking pro Person. Der Chatverlauf lebt nur im Browser und
 wird (auf die letzten Turns gekappt) nur zur Pronomen-Auflösung mitgeschickt.
 
+## Antwort-Typen
+
+Je nach Frage und Fund liefert die Pipeline einen von mehreren Typen; die
+Felder `escalated` / `refused` / `noAnswer` markieren sie:
+
+| Typ | Wann | Erkennbar an |
+|---|---|---|
+| **Quell-Antwort** | passender Artikel gefunden | Antwort + Quellenlink |
+| **Kombi-Antwort** | Quell-Antwort plus sinnvolle Ergänzung | Quelle + „Schon gewusst (aus dem Allgemeinwissen)? …" |
+| **Allgemeinwissen** | Quellen decken die Frage nicht ab | „Aus dem Allgemeinwissen: …", keine Quelle |
+| **Eskalation** | sensible Themen / Krise | Hinweis + Nummer gegen Kummer (`escalated`) |
+| **Abblock-Hinweis** | Schaden an Dritten, Companion, Unpassendes | fester Hinweistext (`refused`) |
+| **Begrüßung** | reine Begrüßung ohne Frage | Hinweis mit Beispielfragen (`refused`) |
+| **Weiß ich nicht** | nichts Belastbares gefunden | ehrlicher Hinweis (`noAnswer`) |
+
 ## Sicherheit
 
 Mehrschichtig aufgebaut, weil bei der unbegleiteten Kindernutzung keine
@@ -311,6 +391,39 @@ Lehrkraft mitfiltert. Keine Schicht ist für sich perfekt; sie ergänzen sich.
 (fail-open), damit nicht jede harmlose Frage blockiert wird. Die
 deterministischen Pre-Filter laufen lokal und unabhängig von der API, greifen
 also auch dann.
+
+## Datenfluss und Datenschutz
+
+Was bei einer Frage wohin geht:
+
+- **Die Frage** geht an **Mistral** (Paris, EU) — zur Sicherheitsprüfung
+  (Moderation) und zur Antwort-Generierung.
+- **Suchanfragen** gehen an **klexikon.zum.de** (ZUM e. V., DE) und an das
+  **Grundschulwiki-Archiv** auf **raw.githubusercontent.com** (GitHub, US;
+  nur Suchbegriffe bzw. Artikelabrufe, keine personenbezogenen Daten).
+- **Optionale Sprachfunktionen**: Antworttext bzw. Audio gehen an
+  **ElevenLabs** (US) für Vorlesen/Transkription.
+
+Nicht übermittelt oder gespeichert: keine Konten, keine serverseitigen
+Chat-Logs, kein Tracking pro Person. Der Verlauf lebt nur im Browser der
+Sitzung (auf wenige Turns gekappt, nur zur Pronomen-Auflösung mitgeschickt)
+und ist nach Reload oder „Neues Gespräch" weg. Ein Cookie dient ausschließlich
+dem Demo-Login. Webanalyse läuft, falls aktiv, cookieless über selbst
+gehostetes Umami. Vollständige Angaben unter `/impressum` und `/datenschutz`.
+
+**Warum das unkritisch ist.** Übermittelt wird im Kern eine *Sachfrage*
+(„Was ist ein Vulkan?") — kein Name, kein Konto, keine Kennung —, und nichts
+davon wird gespeichert. Ohne Identifikatoren und ohne Persistenz bleibt selbst
+die kurzzeitige Verarbeitung praktisch ohne Personenbezug. Die US-Dienste
+bekommen nur, was sie technisch brauchen: GitHub die Suchbegriffe bzw.
+Artikelabrufe, ElevenLabs den (aus öffentlichen Lexika stammenden)
+Antworttext oder das Audio. Sprachmodell und Moderation laufen in der EU.
+
+Ehrlich dazu: Ein freies Eingabefeld lässt sich nicht erzwingen, ein Kind
+*könnte* Persönliches eintippen. Genau deshalb wird nichts gespeichert und
+greifen die Sicherheitsfilter. Für einen dauerhaften, öffentlichen Betrieb
+gehört diese Einschätzung in eine formale Datenschutz-Folgenabschätzung
+(Phase 2).
 
 ## Mehrsprachigkeit
 

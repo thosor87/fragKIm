@@ -26,12 +26,12 @@ const GENERAL_MARKER: Record<string, string> = {
 // Einleitung der Ergänzung in einer Kombi-Antwort (verspielt, aber mit
 // klarem Allgemeinwissen-Hinweis). Steht NACH dem Quell-Kern.
 const SUPPLEMENT_INTRO: Record<string, string> = {
-  de: "Schon gewusst (Allgemeinwissen)?",
-  en: "Did you know (general knowledge)?",
-  tr: "Biliyor muydun (genel bilgi)?",
-  ru: "А ты знал (общие знания)?",
-  uk: "А ти знав (загальні знання)?",
-  ar: "هل تعلم (معرفة عامة)؟",
+  de: "Schon gewusst (aus dem Allgemeinwissen)?",
+  en: "Did you know (from general knowledge)?",
+  tr: "Biliyor muydun (genel bilgiden)?",
+  ru: "А ты знал (из общих знаний)?",
+  uk: "А ти знав (із загальних знань)?",
+  ar: "هل تعلم (من المعرفة العامة)؟",
 };
 
 // Sprach-Code → Klartext-Name für die Uebersetzungs-Anweisung.

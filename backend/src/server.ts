@@ -115,7 +115,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     // im Kombi-Intro ("Schon gewusst (Allgemeinwissen)?" → "Schon gewusst?").
     const speakable = text
       .replace(/^\s*(aus dem )?allgemeinwissen\s*:\s*/gim, "")
-      .replace(/\s*\(allgemeinwissen\)\s*/gi, " ");
+      .replace(/\s*\((aus dem )?allgemeinwissen\)\s*/gi, " ");
     try {
       const url = `https://api.elevenlabs.io/v1/text-to-speech/${config.elevenLabsVoiceId}`;
       const r = await fetch(url, {
