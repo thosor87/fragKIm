@@ -7,31 +7,47 @@
 
 // ---------- 1) Sensible Themen ----------------------------------------------
 
+// Immer-sensibel: Begriffe ohne harmlose Sachfrage-Lesart. "Was ist Suizid?"
+// darf ruhig eskalieren — lieber einmal zu vorsichtig. Begriffe MIT
+// Sachfrage-Lesart (magersucht, schläg, gemobbt, sterben) stehen NICHT hier,
+// sondern in der Ich-Bezug-Ko-Okkurrenz weiter unten.
 export const SENSITIVE_TRIGGERS: string[] = [
-  "suizid", "selbstmord", "umbringen", "sterben wollen", "nicht mehr leben",
-  "ritzen", "selbstverletzung",
-  "vergewaltig", "missbrauch", "schläg", "geschlagen", "wird verprügelt",
-  "gewalt zuhause", "angst vor papa", "angst vor mama",
-  "magersucht", "bulimie", "kotz", "erbrech",
-  "umbring", "bringe mich um", "bring mich um", "mich umzubringen",
+  "suizid", "selbstmord", "umbringen", "umbring", "sterben wollen",
+  "nicht mehr leben", "leben beenden",
+  "bringe mich um", "bring mich um", "mich umzubringen",
   "bringe ich mich um", "bring ich mich um", "bringen mich um",
-  "möchte sterben", "will sterben", "sterben will", "sterben möchte",
-  "leben beenden", "töte mich", "mich töten", "lieber tot",
-  "ritz", "schneide mich", "tu mir weh", "tue mir weh",
-  "verprügel", "angst vor meinem",
+  "töte mich", "mich töten", "lieber tot",
+  "selbstverletzung", "schneide mich", "tu mir weh", "tue mir weh",
+  "vergewaltig", "missbrauch", "wird verprügelt",
+  "gewalt zuhause", "angst vor papa", "angst vor mama", "angst vor meinem",
+  // Mobbing-Opfer: Phrasen, die das "mich" schon enthalten (selbst-bezogen)
+  "hassen mich", "keiner mag mich", "niemand mag mich", "lachen mich aus",
 ];
 
-// Ko-Okkurrenz: Begriffe, die nur GEMEINSAM sensibel sind (reihenfolge-
-// unabhängig). Faengt "nehme heimlich Drogen" / "trinke heimlich Alkohol",
-// ohne bei "Was sind Drogen?" (reine Wissensfrage) anzuschlagen.
+// Ko-Okkurrenz: Begriffe, die nur bei Ich-Bezug sensibel sind. Faengt
+// persönliche Notlagen ("ich nehme Drogen", "ich werde gemobbt", "ich will
+// sterben"), ohne bei reinen Wissensfragen ("Was sind Drogen?", "Was ist
+// Magersucht?", "Warum werden Kinder gemobbt?") anzuschlagen.
+// b = /./ heißt: das erste Muster reicht, der Ich-Bezug ist die eigentliche
+// Bedingung (siehe FIRST_PERSON-Gate in isSensitive).
 const SENSITIVE_COOCCURRENCE: [RegExp, RegExp][] = [
   [/\bdrogen?\b/, /nehm|konsumier|spritz|kauf/],
   [/kokain|heroin|crystal\s*meth|kiff/, /./],
-  [/\balkohol\b/, /trink|sauf|betrink|besoff/],
+  [/\balkohol\b/, /trink|trunk|sauf|betrink|besoff/],
+  // Selbstverletzung / Lebensmüdigkeit (nur mit Ich-Bezug)
+  [/\b(sterben|tot)\b/, /./],
+  [/\britz\w*/, /./],
+  // Essstörung (nur mit Ich-Bezug; "Was ist Magersucht?" bleibt frei)
+  [/\b(magersucht|bulimie|ess.?störung)\b/, /./],
+  [/\b(kotz\w*|erbrech\w*)\b/, /./],
+  // Mobbing-Opfer (nur mit Ich-Bezug; "Warum werden Kinder gemobbt?" frei)
+  [/\b(gemobbt|mobben|hänsel\w*|gehänselt|ausgelacht)\b/, /./],
+  // Körperliche Gewalt gegen das Kind ("mein Papa schlägt mich")
+  [/(schläg|schlägt|geschlagen)/, /./],
 ];
 
-// Substanz-Ko-Okkurrenz greift nur bei Ich-Bezug (persönlicher Konsum),
-// damit reine Wissensfragen ("Warum trinkt man keinen Alkohol als Kind?")
+// Substanz-/Selbst-Ko-Okkurrenz greift nur bei Ich-Bezug, damit reine
+// Wissensfragen ("Warum trinkt man keinen Alkohol?", "Wie tötet eine Spinne?")
 // nicht fälschlich eskalieren.
 const FIRST_PERSON = /\bich\b|\bmir\b|\bmich\b|\bmein/;
 
@@ -52,22 +68,43 @@ export function isSensitive(query: string): boolean {
 
 // ---------- 1b) Schaden an Dritten / Vandalismus / illegale Handlungen ------
 
-// Heuristik: "wie ... kaputt/zerstören/verletzen/töten/klauen/anzünden ..."
-// Kein Versuch, alle Varianten abzudecken — das LLM bekommt zusätzlich eine
-// Regel im System-Prompt. Hier nur die offensichtlichen Anleitungs-Muster.
-// Schaden-Verben: zerstörerische Handlungen. "kaputt" zählt nur in
-// Kombination mit einem Mach-Verb (kaputt machen/schlagen), damit
-// "wie repariere ich mein kaputtes Spielzeug" NICHT anschlägt.
+// Heuristik für Schadens-/Anleitungs-Fragen. Kein Anspruch auf
+// Vollständigkeit — das LLM bekommt zusätzlich eine Regel im System-Prompt,
+// und die Output-Moderation prüft die erzeugte Antwort.
+//
+// Kernproblem: viele Verben sind mehrdeutig. "Wie tötet eine Spinne ihre
+// Beute?" ist eine Naturfrage, "Wie töte ich eine Katze?" eine Schadensbitte.
+// Der zuverlässige Unterschied ist der TÄTER: ein Kind, das Schaden plant,
+// fragt "wie [verb] ich ..." oder "wie kann man ...". Naturfragen lauten
+// "wie [verb] ein/eine [Tier/Naturkraft] ...". Mehrdeutige Verben verlangen
+// daher einen Ich-Bezug oder das unpersönliche "wie kann man".
+
+// Mehrdeutige Schaden-Verben (brauchen Täter-Bezug, s.u.).
+const HARM_VERB = "zerstör|zerkratz|verletz|töt|verbrenn|quäl|vergift|klau|stehl|stech|erstech|schieß|prügel|verprügel";
+
+// Opfer-Indikatoren für "schlagen" (sonst: "Ei aufschlagen", "Sahne schlagen",
+// "den Ball schlagen", "Herz schlägt" — alles harmlos).
+const VICTIM = "ihn|sie|ihm|jemand\\w*|meinen?|meine|bruder|schwester|nachbarn?|lehrer\\w*|mitschüler\\w*|kind|kinder|mann|frau|hund|katze|tier\\w*|jungen?|mädchen|papa|mama|mutter|vater|freundin?|freunde?";
+
 const HARM_PATTERNS: RegExp[] = [
-  /\bwie\b.{0,40}\b(zerstör|verletz|töt|verbrenn|anzünd|klau|stehl|stech|schieß|prügel|verprügel)\w*/i,
-  // Schlagen als Täter: nur explizite Verbformen (nicht "Schlagzeug")
-  /\bwie\b.{0,40}\b(schlage|schlagen|schlägst|verhau|zusammenschlag)\w*/i,
-  // anzünden auch getrennt: "zünde ... an"
-  /\bwie\b.{0,40}\bz[üu]nd\w*\b.{0,30}\ban\b/i,
+  // Mehrdeutiges Verb + Täter "ich" (beide Reihenfolgen)
+  new RegExp(`\\bwie\\b.{0,40}\\b(${HARM_VERB})\\w*\\b.{0,25}\\bich\\b`, "i"),
+  new RegExp(`\\bwie\\b.{0,20}\\bich\\b.{0,25}\\b(${HARM_VERB})\\w*`, "i"),
+  // Unpersönlich: "wie kann man jemanden verprügeln/töten/..."
+  new RegExp(`\\bwie\\s+kann\\s+man\\b.{0,40}\\b(${HARM_VERB}|umbring)\\w*`, "i"),
+  // Schlagen: nur mit Opfer-Indikator (egal ob Ich-Bezug)
+  new RegExp(`\\bwie\\b.{0,40}\\bschl[aä]g\\w*\\b.{0,30}\\b(${VICTIM})\\b`, "i"),
+  // Eindeutig gewaltsam, kein Opfer-Wort nötig
+  /\bwie\b.{0,40}\b(verhau|zusammenschlag)\w*/i,
+  // Brandstiftung: anzünden mit Ich-Bezug ("wie zünde ich ... an")
+  /\bwie\b.{0,15}\bz[üu]nd\w*\b.{0,8}\bich\b.{0,30}\ban\b/i,
+  // "in Brand stecken" / "Feuer/Brand legen"
+  /\bwie\b.{0,40}\bin\s+brand\b/i,
   /\bwie\b.{0,40}\b(brand|feuer)\b.{0,20}\bleg/i,
-  /\bwie\s+kann\s+man\b.{0,40}\b(zerstör|verletz|töt|klau|stehl|umbring)\w*/i,
+  // Waffen/Sprengstoff: Nomen sind eindeutig, beide Reihenfolgen
+  /\bwie\b.{0,30}\b(bombe|sprengstoff|waffe)\b.{0,20}\b(bau|herstell|mach|bastel)/i,
+  /\bwie\b.{0,30}\b(bau|herstell|mach|bastel)\w*.{0,20}\b(bombe|sprengstoff|waffe)\b/i,
   /\banleitung\b.{0,30}\b(bombe|waffe|sprengstoff)\w*/i,
-  /\bwie\b.{0,30}\b(bombe|sprengstoff)\b.{0,20}\b(bau|herstell|mach)/i,
 ];
 
 export function isHarmRequest(query: string): boolean {
@@ -106,7 +143,7 @@ const COMPANION_PHRASES: string[] = [
   "stell dir vor du",
 ];
 
-const GREETING_ONLY = /^(hallo|hi|hey|moin|servus|guten morgen|guten tag|guten abend|hallöchen)[!?.\s]*$/i;
+const GREETING_ONLY = /^(hallo|hi|hey|moin moin|moin|servus|guten morgen|guten tag|guten abend|hallöchen)[!?.\s]*$/i;
 
 export function isCompanionRequest(query: string): boolean {
   const q = query.toLowerCase();
