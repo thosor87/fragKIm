@@ -5,6 +5,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useTranslation } from "react-i18next";
+import { LANGS, type LangCode } from "./i18n";
 
 // Vorlesen läuft über Server-TTS (ElevenLabs), nicht über die Browser-API.
 // Spracheingabe ist bewusst entfernt (Browser-SpeechRecognition ist auf
@@ -30,10 +32,6 @@ const DEFAULT_SOURCES: SourceFlags = {
   allgemeinwissen: true,
 };
 
-const WIKI_LABEL: Record<WikiSourceId, string> = {
-  klexikon: "Klexikon",
-  grundschulwiki: "Grundschulwiki",
-};
 
 type AssistantMessage = {
   id: string;
@@ -61,6 +59,12 @@ function uid(): string {
 }
 
 export function App() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.resolvedLanguage as LangCode;
+  const WIKI_LABEL: Record<WikiSourceId, string> = {
+    klexikon: t("sourceKlexikon"),
+    grundschulwiki: t("sourceGrundschulwiki"),
+  };
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -254,7 +258,12 @@ export function App() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, history, sources: sourcePrefs }),
+        body: JSON.stringify({
+          question: q,
+          history,
+          sources: sourcePrefs,
+          lang,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -286,9 +295,7 @@ export function App() {
 
   return (
     <>
-      <div className="demo-banner" role="status">
-        Interne Entwicklungs-Demo. Nicht für Kinder bestimmt.
-      </div>
+      <div className="demo-banner" role="status">{t("banner")}</div>
 
       <header className="brand">
         <div className="brand-inner">
@@ -299,24 +306,39 @@ export function App() {
               <rect x="16" y="33" width="8" height="2" rx="1" fill="#2A2D34" />
             </svg>
           </span>
-          <h1>frag KIm</h1>
+          <h1>{t("brand")}</h1>
         </div>
-        {messages.length > 0 && (
-          <button className="reset" type="button" onClick={resetChat}>
-            Neues Gespräch
-          </button>
-        )}
+        <div className="brand-controls">
+          <label className="lang-switch" aria-label={t("languageLabel")}>
+            <span aria-hidden="true">🌐</span>
+            <select
+              value={lang}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+            >
+              {LANGS.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.flag} {l.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {messages.length > 0 && (
+            <button className="reset" type="button" onClick={resetChat}>
+              {t("newConversation")}
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="sources-bar" aria-label="Aktive Wissensquellen">
-        <span className="sources-bar-label">Quellen:</span>
+      <div className="sources-bar" role="group" aria-label={t("sources")}>
+        <span className="sources-bar-label">{t("sources")}</span>
         {(["klexikon", "grundschulwiki", "allgemeinwissen"] as const).map((k) => {
           const label =
             k === "klexikon"
-              ? "Klexikon"
+              ? t("sourceKlexikon")
               : k === "grundschulwiki"
-                ? "Grundschulwiki"
-                : "Allgemeinwissen";
+                ? t("sourceGrundschulwiki")
+                : t("sourceCommonKnowledge");
           const on = sourcePrefs[k];
           return (
             <button
@@ -325,7 +347,6 @@ export function App() {
               className={"source-toggle" + (on ? " on" : " off")}
               aria-pressed={on}
               onClick={() => setSourcePrefs((s) => ({ ...s, [k]: !s[k] }))}
-              title={on ? `${label} ausschalten` : `${label} einschalten`}
             >
               {label}
             </button>
@@ -337,11 +358,11 @@ export function App() {
         {messages.length === 0 && (
           <div className="hint">
             <p>
-              Stell hier eine Frage, zum Beispiel:
+              {t("hintIntro")}
               <br />
-              <em>„Wie schnell läuft ein Gepard?"</em>
+              <em>{t("example1")}</em>
               <br />
-              <em>„Was ist ein Vulkan?"</em>
+              <em>{t("example2")}</em>
             </p>
           </div>
         )}
@@ -377,8 +398,8 @@ export function App() {
                   <button
                     type="button"
                     className={"icon-btn" + (speakingId === m.id ? " active" : "")}
-                    aria-label={speakingId === m.id ? "Vorlesen stoppen" : "Vorlesen"}
-                    title={speakingId === m.id ? "Vorlesen stoppen" : "Vorlesen"}
+                    aria-label={speakingId === m.id ? t("speakStop") : t("speakStart")}
+                    title={speakingId === m.id ? t("speakStop") : t("speakStart")}
                     onClick={() => toggleSpeak(m.id, m.text)}
                   >
                     {speakingId === m.id ? (
@@ -390,7 +411,7 @@ export function App() {
                 </div>
                 {m.sources.length > 0 && (
                   <div className="sources">
-                    <span className="sources-label">Quelle:</span>
+                    <span className="sources-label">{t("source")}</span>
                     <ul>
                       {m.sources.map((s) => (
                         <li key={s.url}>
@@ -435,22 +456,27 @@ export function App() {
       <form className="composer" onSubmit={submit}>
         <div className="composer-inner">
           <div className="input-wrap has-mic">
+            <label className="visually-hidden" htmlFor="question-input">
+              {t("placeholder")}
+            </label>
             <textarea
+              id="question-input"
               ref={inputRef}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder={
                 recState === "recording"
-                  ? "Sprich jetzt …"
+                  ? t("placeholderRecording")
                   : recState === "transcribing"
-                    ? "Verstehe …"
-                    : "Was möchtest du wissen?"
+                    ? t("placeholderTranscribing")
+                    : t("placeholder")
               }
               rows={1}
               maxLength={500}
               disabled={loading || recState !== "idle"}
               autoFocus
+              aria-busy={loading || recState !== "idle"}
             />
             <button
               type="button"
@@ -459,12 +485,9 @@ export function App() {
                 (recState === "recording" ? " active" : "") +
                 (recState === "transcribing" ? " busy" : "")
               }
-              aria-label={
-                recState === "recording" ? "Aufnahme stoppen" : "Per Mikrofon eingeben"
-              }
-              title={
-                recState === "recording" ? "Aufnahme stoppen" : "Per Mikrofon eingeben"
-              }
+              aria-label={recState === "recording" ? t("micStop") : t("micStart")}
+              aria-pressed={recState === "recording"}
+              title={recState === "recording" ? t("micStop") : t("micStart")}
               onClick={recState === "recording" ? stopRecording : startRecording}
               disabled={loading || recState === "transcribing"}
             >

@@ -84,6 +84,7 @@ export async function ask(
   question: string,
   history: ChatTurn[] = [],
   sources: SourceFlags = DEFAULT_SOURCES,
+  lang: string = "de",
 ): Promise<AskResult> {
   const q = question.trim();
   if (!q) {
@@ -177,6 +178,7 @@ export async function ask(
     strong,
     history,
     sources.allgemeinwissen,
+    lang,
   );
   // Wenn das LLM "HARM" zurückgibt, übernehmen wir die feste Harm-Antwort,
   // damit das Modell keinen eigenen Refusal-Text produziert.
@@ -207,10 +209,9 @@ export async function ask(
     .replace(/\n\s*\n\s*$/g, "")
     .trim();
 
-  // Quellen werden gezeigt, wenn die Antwort NICHT mit dem Allgemeinwissen-
-  // Marker beginnt UND tatsächlich retrievte Auszüge da waren.
-  const fromGeneral = /^allgemeinwissen\s*:/i.test(cleaned);
-  const showSources = !fromGeneral && strong.length > 0;
+  // Quellen werden gezeigt, wenn die Antwort NICHT aus Allgemeinwissen kommt
+  // (Flag aus dem Generator, sprachunabhängig) UND Auszüge da waren.
+  const showSources = !out.fromGeneralKnowledge && strong.length > 0;
   return {
     text: cleaned,
     sources: showSources ? dedupeSources(strong) : [],

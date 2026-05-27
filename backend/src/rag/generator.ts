@@ -5,6 +5,27 @@ import type { ChatTurn } from "./pipeline.js";
 export type GenerateResult = {
   text: string;
   noAnswer: boolean;
+  fromGeneralKnowledge?: boolean;
+};
+
+// Marker-Label pro Sprache (Praefix "Allgemeinwissen").
+const GENERAL_MARKER: Record<string, string> = {
+  de: "Allgemeinwissen",
+  en: "General knowledge",
+  tr: "Genel bilgi",
+  ru: "Общие знания",
+  uk: "Загальні знання",
+  ar: "معرفة عامة",
+};
+
+// Sprach-Code → Klartext-Name für die Uebersetzungs-Anweisung.
+const LANG_NAMES: Record<string, string> = {
+  de: "Deutsch",
+  en: "English",
+  tr: "Türkçe (Türkisch)",
+  ru: "Русский (Russisch)",
+  uk: "Українська (Ukrainisch)",
+  ar: "العربية (Arabisch)",
 };
 
 const NO_ANSWER_TEXT =
@@ -96,6 +117,7 @@ async function ollamaGenerate(
   hits: Hit[],
   history: ChatTurn[],
   allgemeinwissenAllowed: boolean,
+  lang: string,
 ): Promise<GenerateResult> {
   const trimmedHistory = history.slice(-6).map((h) => ({
     role: h.role,
@@ -127,7 +149,9 @@ async function ollamaGenerate(
   if (content.includes("HARM")) {
     return { text: "HARM", noAnswer: true };
   }
-  return { text: content, noAnswer: false };
+  // Ollama-Modus uebersetzt nicht (lokal, ohne Mistral). finalizeAnswer
+  // erkennt nur den Marker; translateText ist im Ollama-Modus ein No-op.
+  return finalizeAnswer(content, lang);
 }
 
 // --- Mistral-Generator -----------------------------------------------------
@@ -190,6 +214,7 @@ async function mistralGenerate(
   hits: Hit[],
   history: ChatTurn[],
   allgemeinwissenAllowed: boolean,
+  lang: string,
 ): Promise<GenerateResult> {
   if (!mistralClient) {
     const { Mistral } = await import("@mistralai/mistralai");
@@ -199,6 +224,9 @@ async function mistralGenerate(
     role: h.role === "user" ? ("user" as const) : ("assistant" as const),
     content: h.content,
   }));
+  // Immer auf Deutsch generieren (zuverlaessig gegroundet), danach ggf.
+  // uebersetzen. Das ist robuster als Mistral-small direkt mehrsprachig
+  // antworten zu lassen.
   const res = await mistralClient.chat.complete({
     model: "mistral-small-latest",
     temperature: 0.2,
@@ -217,20 +245,65 @@ async function mistralGenerate(
   if (trimmed.includes("HARM")) {
     return { text: "HARM", noAnswer: true };
   }
-  return { text: trimmed, noAnswer: false };
+  return finalizeAnswer(trimmed, lang);
 }
+
+// Marker erkennen, Text ggf. uebersetzen, lokalisierten Marker anhaengen.
+async function finalizeAnswer(
+  germanText: string,
+  lang: string,
+): Promise<GenerateResult> {
+  let fromGeneral = false;
+  let body = germanText;
+  const m = body.match(/^allgemeinwissen\s*:\s*/i);
+  if (m) {
+    fromGeneral = true;
+    body = body.slice(m[0].length).trim();
+  }
+  if (lang !== "de" && LANG_NAMES[lang]) {
+    body = await translateText(body, lang);
+  }
+  const markerLabel = GENERAL_MARKER[lang] ?? GENERAL_MARKER.de;
+  const text = fromGeneral ? `${markerLabel}: ${body}` : body;
+  return { text, noAnswer: false, fromGeneralKnowledge: fromGeneral };
+}
+
+async function translateText(text: string, lang: string): Promise<string> {
+  const name = LANG_NAMES[lang];
+  if (!name || lang === "de" || !mistralClient) return text;
+  try {
+    const res = await mistralClient.chat.complete({
+      model: "mistral-small-latest",
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content: `Du bist ein Übersetzer für Kindertexte. Übersetze den folgenden Text nach ${name}. Behalte den einfachen, kindgerechten und freundlichen Ton. Gib ausschließlich die Übersetzung zurück, ohne Anführungszeichen, ohne Vorrede, ohne Erklärung.`,
+        },
+        { role: "user", content: text },
+      ],
+    });
+    const out = res.choices?.[0]?.message?.content;
+    return typeof out === "string" && out.trim() ? out.trim() : text;
+  } catch {
+    return text; // im Fehlerfall lieber deutscher Text als gar keiner
+  }
+}
+
 
 export async function generate(
   question: string,
   hits: Hit[],
   history: ChatTurn[] = [],
   allgemeinwissenAllowed: boolean = true,
+  lang: string = "de",
 ): Promise<GenerateResult> {
   if (config.llmProvider === "mistral")
-    return mistralGenerate(question, hits, history, allgemeinwissenAllowed);
+    return mistralGenerate(question, hits, history, allgemeinwissenAllowed, lang);
   if (config.llmProvider === "ollama")
-    return ollamaGenerate(question, hits, history, allgemeinwissenAllowed);
+    return ollamaGenerate(question, hits, history, allgemeinwissenAllowed, lang);
   void history;
   void allgemeinwissenAllowed;
+  void lang;
   return stubGenerate(question, hits);
 }

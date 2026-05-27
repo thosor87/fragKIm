@@ -50,6 +50,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       question?: string;
       history?: ChatTurn[];
       sources?: Partial<SourceFlags>;
+      lang?: string;
     };
   }>("/api/ask", async (req, reply) => {
     const q = (req.body?.question ?? "").toString();
@@ -57,6 +58,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       reply.code(400);
       return { error: "Frage fehlt oder ist zu lang (max. 500 Zeichen)." };
     }
+    const lang = (req.body?.lang ?? "de").toString().slice(0, 5);
     const raw = Array.isArray(req.body?.history) ? req.body!.history : [];
     const history: ChatTurn[] = raw
       .filter(
@@ -74,7 +76,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       allgemeinwissen: sIn.allgemeinwissen ?? DEFAULT_SOURCES.allgemeinwissen,
     };
     try {
-      const result = await ask(q, history, sources);
+      const result = await ask(q, history, sources, lang);
       return result;
     } catch (err) {
       app.log.error({ err }, "ask failed");
