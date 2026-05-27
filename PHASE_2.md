@@ -43,9 +43,6 @@ Trägerschaft + Finanzierung + DSFA stehen.
 - **Muttersprachliche Prüfung** der nicht-deutschen Sicherheits-Texte plus
   sprach-spezifische Wortlisten. Bekannte Lücke: eine türkische
   Selbstverletzungs-Formulierung wird gestoppt, aber ohne Hilfe-Verweis.
-- **Konkrete Privatperson erkennen** (Schul-Mobbing-Kontext): Namen aus
-  Klassenlisten ausblenden oder per Muster „ist das eine reale Privatperson?".
-  (Mobbing-Opfer lösen bereits eine Eskalation aus.)
 
 ## Was den Schulalltag bedient
 
