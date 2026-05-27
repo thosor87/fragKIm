@@ -1,17 +1,17 @@
-// Output-Moderation (Stufe 2) mit der Mistral Moderation API (EU).
+// Moderation mit der Mistral Moderation API (EU). Zwei Einsatzorte:
 //
-// Greift NUR auf Allgemeinwissen-Antworten (ohne Quellbeleg), weil die aus
-// dem generellen Modellwissen kommen und damit das höchste Halluzinations-/
-// Themenrisiko tragen. Geprüfte Klexikon/Grundschulwiki-Auszüge laufen NICHT
-// hier durch — die sind bereits eine vertrauenswürdige Quelle.
+//  1) INPUT (moderateInput): die Frage des Kindes, BEVOR das LLM antwortet.
+//     Sprach-agnostisch — fängt eine Krise ("ich will nicht mehr leben") auch
+//     auf Türkisch/Arabisch/… , wo die deutschen Wortlisten in triggers.ts
+//     blind sind. Das ist die eigentliche mehrsprachige Sicherheitslücke.
 //
-// Verhalten bei Treffer: Antwort verwerfen + feste Meldung. Je nach Kategorie
-// entweder Eskalation (Nummer gegen Kummer) oder neutrales Abblocken.
+//  2) OUTPUT (moderateOutput): die generierte Allgemeinwissen-Antwort (ohne
+//     Quellbeleg), weil die aus dem Modellwissen kommt. Geprüfte Klexikon-/
+//     Grundschulwiki-Antworten laufen NICHT durch (vertrauenswürdige Quelle).
 //
-// Fail-open: Wenn die Moderation-API nicht erreichbar ist, wird die Antwort
-// durchgelassen. Die Input-Filter (triggers.ts) und der harte System-Prompt
-// bleiben als erste Verteidigungslinie bestehen; ein Ausfall der zweiten Stufe
-// soll nicht jede harmlose Wissensantwort blockieren.
+// Fail-open: Bei API-Ausfall wird durchgelassen. Die deutschen Wortlisten und
+// der harte System-Prompt bleiben als erste Verteidigung bestehen; ein Ausfall
+// der Moderation soll nicht jede harmlose Frage blockieren.
 
 import { config } from "../config.js";
 
@@ -20,66 +20,97 @@ export type ModerationVerdict =
   | { action: "escalate"; category: string }
   | { action: "block"; category: string };
 
-// Kategorien, die bei einem Kind auf eine Notlage hindeuten → Eskalation
-// (gleiche Reaktion wie der Input-Filter: Hinweis auf Hilfe-Angebote).
-const ESCALATE_CATEGORIES = new Set(["selfharm"]);
+// Kategorie, die auf eine Notlage des Kindes hindeutet → Eskalation
+// (Hinweis auf Hilfe-Angebote, Nummer gegen Kummer).
+const SELFHARM = "selfharm";
 
-// Kategorien, die für ein Kind schlicht unpassend sind → neutral abblocken.
-const BLOCK_CATEGORIES = new Set([
+// Kategorien, die für ein Kind unpassend sind → neutral abblocken.
+const BLOCK_CATEGORIES = [
   "sexual",
   "violence_and_threats",
   "dangerous_and_criminal_content",
   "hate_and_discrimination",
-]);
+];
 
-// Die feste Block-Meldung lebt mehrsprachig in responses.ts
-// (moderationBlockResponse) und wird von der Pipeline ausgewählt.
+// Beim INPUT blocken wir die Nicht-Krisen-Kategorien nur bei hoher Konfidenz.
+// Grund: Sachfragen aus einem Kinderlexikon streifen diese Themen ständig
+// ("Wie jagt ein Löwe?", "Wie ist Hitler gestorben?", "Was ist Krieg?").
+// selfharm dagegen wird am Flag eskaliert — der Fall ist kritisch und kollidiert
+// kaum mit Wissensfragen.
+const INPUT_BLOCK_THRESHOLD = 0.85;
 
 let mistralClient: import("@mistralai/mistralai").Mistral | null = null;
 
 type ModerationResult = {
   categories?: Record<string, boolean>;
+  categoryScores?: Record<string, number>;
 };
 
-// Verdict aus den Booleans ableiten. Eskalation hat Vorrang vor Block, damit
-// eine Selbstverletzungs-Andeutung immer zur Hilfe-Meldung führt.
-// Exportiert für Unit-Tests (der API-Call selbst ist nicht deterministisch).
-export function classify(categories: Record<string, boolean>): ModerationVerdict {
-  for (const [cat, flagged] of Object.entries(categories)) {
-    if (flagged && ESCALATE_CATEGORIES.has(cat)) {
-      return { action: "escalate", category: cat };
-    }
+// --- Verdict-Logik (deterministisch, unit-getestet) ------------------------
+
+// OUTPUT: an der generierten Antwort sind wir strenger und vertrauen den
+// Boolean-Flags der API (Eskalation hat Vorrang vor Block).
+export function classifyOutput(categories: Record<string, boolean>): ModerationVerdict {
+  if (categories[SELFHARM]) return { action: "escalate", category: SELFHARM };
+  for (const cat of BLOCK_CATEGORIES) {
+    if (categories[cat]) return { action: "block", category: cat };
   }
-  for (const [cat, flagged] of Object.entries(categories)) {
-    if (flagged && BLOCK_CATEGORIES.has(cat)) {
+  return { action: "allow" };
+}
+
+// INPUT: selfharm am Flag (kritisch), übrige Kategorien nur bei hoher
+// Konfidenz, damit legitime Sachfragen nicht fälschlich geblockt werden.
+export function classifyInput(
+  categories: Record<string, boolean>,
+  scores: Record<string, number> = {},
+): ModerationVerdict {
+  if (categories[SELFHARM]) return { action: "escalate", category: SELFHARM };
+  for (const cat of BLOCK_CATEGORIES) {
+    if (categories[cat] && (scores[cat] ?? 1) >= INPUT_BLOCK_THRESHOLD) {
       return { action: "block", category: cat };
     }
   }
   return { action: "allow" };
 }
 
-export async function moderateOutput(text: string): Promise<ModerationVerdict> {
-  // Nur mit echtem Mistral-Provider sinnvoll; im Stub-/Ollama-Modus überspringen.
-  if (config.llmProvider !== "mistral") return { action: "allow" };
-  if (!text.trim()) return { action: "allow" };
+// Rückwärtskompatibler Alias (frühere Tests/Imports).
+export const classify = classifyOutput;
 
+// --- API-Aufruf ------------------------------------------------------------
+
+async function runModeration(text: string): Promise<ModerationResult | null> {
+  if (config.llmProvider !== "mistral") return null;
+  if (!text.trim()) return null;
+  if (!mistralClient) {
+    const { Mistral } = await import("@mistralai/mistralai");
+    mistralClient = new Mistral({ apiKey: config.requireMistralKey() });
+  }
+  const res = await mistralClient.classifiers.moderate({
+    model: "mistral-moderation-latest",
+    inputs: [text],
+  });
+  const results = (res as { results?: ModerationResult[] }).results ?? [];
+  return results[0] ?? null;
+}
+
+export async function moderateInput(text: string): Promise<ModerationVerdict> {
   try {
-    if (!mistralClient) {
-      const { Mistral } = await import("@mistralai/mistralai");
-      mistralClient = new Mistral({ apiKey: config.requireMistralKey() });
-    }
-    const res = await mistralClient.classifiers.moderate({
-      model: "mistral-moderation-latest",
-      inputs: [text],
-    });
-    const results = (res as { results?: ModerationResult[] }).results ?? [];
-    const categories = results[0]?.categories;
-    if (!categories) return { action: "allow" };
-    return classify(categories);
+    const r = await runModeration(text);
+    if (!r?.categories) return { action: "allow" };
+    return classifyInput(r.categories, r.categoryScores ?? {});
   } catch (err) {
-    // Fail-open: Wissensantwort lieber durchlassen als bei API-Ausfall alles
-    // blocken. Input-Filter + System-Prompt schützen weiterhin.
-    console.warn("[moderation] Mistral Moderation nicht erreichbar, lasse Antwort durch:", err);
+    console.warn("[moderation] Input-Moderation nicht erreichbar, lasse Frage durch:", err);
+    return { action: "allow" };
+  }
+}
+
+export async function moderateOutput(text: string): Promise<ModerationVerdict> {
+  try {
+    const r = await runModeration(text);
+    if (!r?.categories) return { action: "allow" };
+    return classifyOutput(r.categories);
+  } catch (err) {
+    console.warn("[moderation] Output-Moderation nicht erreichbar, lasse Antwort durch:", err);
     return { action: "allow" };
   }
 }

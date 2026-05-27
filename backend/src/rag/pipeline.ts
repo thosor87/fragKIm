@@ -31,7 +31,7 @@ import {
 } from "../responses.js";
 import { generate } from "./generator.js";
 import { rewriteQuery } from "./rewrite.js";
-import { moderateOutput } from "./moderation.js";
+import { moderateInput, moderateOutput } from "./moderation.js";
 
 export type Source = {
   title: string;
@@ -136,6 +136,31 @@ export async function ask(
   if (isCompanionRequest(q)) {
     return {
       text: offtopicResponse(lang).text,
+      sources: [],
+      escalated: false,
+      noAnswer: false,
+      refused: true,
+    };
+  }
+
+  // Mehrsprachiges Sicherheitsnetz: die deutschen Wortlisten oben sind blind
+  // für andere Sprachen. Die Mistral-Moderation prüft die Frage sprach-
+  // agnostisch, BEVOR das LLM sie sieht — eine Krise ("ich will nicht mehr
+  // leben") wird so auch auf Türkisch/Arabisch/… erkannt.
+  const inputVerdict = await moderateInput(q);
+  if (inputVerdict.action === "escalate") {
+    const esc = escalationResponse(lang);
+    return {
+      text: esc.text,
+      sources: esc.sources,
+      escalated: true,
+      noAnswer: false,
+      refused: false,
+    };
+  }
+  if (inputVerdict.action === "block") {
+    return {
+      text: moderationBlockResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,

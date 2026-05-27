@@ -49,5 +49,11 @@ export const config = {
   elevenLabsVoiceId: process.env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM",
   elevenLabsModelId: process.env.ELEVENLABS_MODEL_ID ?? "eleven_multilingual_v2",
 
+  // Rate-Limit pro IP und Minute. /ask = LLM+Moderation, /media = ElevenLabs
+  // (teurer, daher etwas knapper). 0 schaltet das jeweilige Limit ab.
+  rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000),
+  rateLimitAsk: Number(process.env.RATE_LIMIT_ASK ?? 30),
+  rateLimitMedia: Number(process.env.RATE_LIMIT_MEDIA ?? 20),
+
   requireMistralKey: () => required("MISTRAL_API_KEY"),
 };

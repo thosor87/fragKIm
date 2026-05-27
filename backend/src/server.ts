@@ -10,6 +10,7 @@ import { ask, type ChatTurn, type SourceFlags, DEFAULT_SOURCES } from "./rag/pip
 import { registerAuth } from "./auth.js";
 import { registerArchiveViewer } from "./archive-viewer.js";
 import { registerLegalPages } from "./legal-pages.js";
+import { makeRateLimiter } from "./rate-limit.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -45,6 +46,18 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerAuth(app);
   registerArchiveViewer(app);
 
+  // Rate-Limit pro IP. Ein Limiter (eigener Zähler) fürs Fragen, ein
+  // gemeinsamer für die teureren ElevenLabs-Endpunkte. max=0 → kein Limit.
+  const win = config.rateLimitWindowMs;
+  const askLimit =
+    config.rateLimitAsk > 0
+      ? makeRateLimiter({ windowMs: win, max: config.rateLimitAsk, name: "ask" })
+      : undefined;
+  const mediaLimit =
+    config.rateLimitMedia > 0
+      ? makeRateLimiter({ windowMs: win, max: config.rateLimitMedia, name: "media" })
+      : undefined;
+
   app.post<{
     Body: {
       question?: string;
@@ -52,7 +65,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       sources?: Partial<SourceFlags>;
       lang?: string;
     };
-  }>("/api/ask", async (req, reply) => {
+  }>("/api/ask", { preHandler: askLimit }, async (req, reply) => {
     const q = (req.body?.question ?? "").toString();
     if (!q || q.length > 500) {
       reply.code(400);
@@ -87,7 +100,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     }
   });
 
-  app.post<{ Body: { text?: string } }>("/api/speak", async (req, reply) => {
+  app.post<{ Body: { text?: string } }>("/api/speak", { preHandler: mediaLimit }, async (req, reply) => {
     const text = (req.body?.text ?? "").toString().slice(0, 2000);
     if (!text) {
       reply.code(400);
@@ -131,7 +144,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     }
   });
 
-  app.post("/api/transcribe", async (req, reply) => {
+  app.post("/api/transcribe", { preHandler: mediaLimit }, async (req, reply) => {
     if (!config.elevenLabsApiKey) {
       reply.code(503);
       return { error: "Spracheingabe ist nicht konfiguriert." };
