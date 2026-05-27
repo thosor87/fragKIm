@@ -454,11 +454,19 @@ main:focus-visible { outline: none; }
 }
 .footer-links span { opacity: 0.4; }
 .footer-version {
-  align-self: flex-end;
+  position: fixed;
+  bottom: 8px;
+  inset-inline-end: 12px; /* rechts (bzw. links bei RTL), neben dem Composer */
+  z-index: 20;
   font-size: 10px;
   color: var(--muted);
   opacity: 0.35;
   letter-spacing: 0.02em;
+  pointer-events: none; /* fängt nie einen Klick auf den Senden-Button ab */
+}
+/* Auf schmalen Screens füllt der Composer die Breite → würde überlappen. */
+@media (max-width: 640px) {
+  .footer-version { display: none; }
 }
 .footer a {
   color: var(--muted);
