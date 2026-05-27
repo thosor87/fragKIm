@@ -12,9 +12,28 @@ export const SENSITIVE_TRIGGERS: string[] = [
   "ritzen", "selbstverletzung",
   "vergewaltig", "missbrauch", "schläg", "geschlagen", "wird verprügelt",
   "gewalt zuhause", "angst vor papa", "angst vor mama",
-  "drogen nehmen", "kokain", "heroin", "crystal meth", "alkohol trinken",
-  "magersucht", "bulimie", "kotzen nach essen",
+  "magersucht", "bulimie", "kotz", "erbrech",
+  "umbring", "bringe mich um", "bring mich um", "mich umzubringen",
+  "bringe ich mich um", "bring ich mich um", "bringen mich um",
+  "möchte sterben", "will sterben", "sterben will", "sterben möchte",
+  "leben beenden", "töte mich", "mich töten", "lieber tot",
+  "ritz", "schneide mich", "tu mir weh", "tue mir weh",
+  "verprügel", "angst vor meinem",
 ];
+
+// Ko-Okkurrenz: Begriffe, die nur GEMEINSAM sensibel sind (reihenfolge-
+// unabhängig). Faengt "nehme heimlich Drogen" / "trinke heimlich Alkohol",
+// ohne bei "Was sind Drogen?" (reine Wissensfrage) anzuschlagen.
+const SENSITIVE_COOCCURRENCE: [RegExp, RegExp][] = [
+  [/\bdrogen?\b/, /nehm|konsumier|spritz|kauf/],
+  [/kokain|heroin|crystal\s*meth|kiff/, /./],
+  [/\balkohol\b/, /trink|sauf|betrink|besoff/],
+];
+
+// Substanz-Ko-Okkurrenz greift nur bei Ich-Bezug (persönlicher Konsum),
+// damit reine Wissensfragen ("Warum trinkt man keinen Alkohol als Kind?")
+// nicht fälschlich eskalieren.
+const FIRST_PERSON = /\bich\b|\bmir\b|\bmich\b|\bmein/;
 
 export const ESCALATION_RESPONSE = {
   text:
@@ -30,7 +49,13 @@ export const ESCALATION_RESPONSE = {
 
 export function isSensitive(query: string): boolean {
   const q = query.toLowerCase();
-  return SENSITIVE_TRIGGERS.some((t) => q.includes(t));
+  if (SENSITIVE_TRIGGERS.some((t) => q.includes(t))) return true;
+  if (FIRST_PERSON.test(q)) {
+    for (const [a, b] of SENSITIVE_COOCCURRENCE) {
+      if (a.test(q) && b.test(q)) return true;
+    }
+  }
+  return false;
 }
 
 // ---------- 1b) Schaden an Dritten / Vandalismus / illegale Handlungen ------
@@ -38,14 +63,35 @@ export function isSensitive(query: string): boolean {
 // Heuristik: "wie ... kaputt/zerstören/verletzen/töten/klauen/anzünden ..."
 // Kein Versuch, alle Varianten abzudecken — das LLM bekommt zusätzlich eine
 // Regel im System-Prompt. Hier nur die offensichtlichen Anleitungs-Muster.
+// Schaden-Verben: zerstörerische Handlungen. "kaputt" zählt nur in
+// Kombination mit einem Mach-Verb (kaputt machen/schlagen), damit
+// "wie repariere ich mein kaputtes Spielzeug" NICHT anschlägt.
 const HARM_PATTERNS: RegExp[] = [
-  /\bwie\b.{0,40}\b(kaputt|zerstör|verletz|töt|verbrenn|anzünd|klau|stehl|stech|schieß|prügel|schlag|verprügel)\w*/i,
-  /\bwie\s+kann\s+man\b.{0,40}\b(kaputt|zerstör|verletz|töt|klau|stehl)\w*/i,
-  /\banleitung\b.{0,30}\b(bombe|waffe|brand)\w*/i,
+  /\bwie\b.{0,40}\b(zerstör|verletz|töt|verbrenn|anzünd|klau|stehl|stech|schieß|prügel|verprügel)\w*/i,
+  // Schlagen als Täter: nur explizite Verbformen (nicht "Schlagzeug")
+  /\bwie\b.{0,40}\b(schlage|schlagen|schlägst|verhau|zusammenschlag)\w*/i,
+  // anzünden auch getrennt: "zünde ... an"
+  /\bwie\b.{0,40}\bz[üu]nd\w*\b.{0,30}\ban\b/i,
+  /\bwie\b.{0,40}\b(brand|feuer)\b.{0,20}\bleg/i,
+  /\bwie\s+kann\s+man\b.{0,40}\b(zerstör|verletz|töt|klau|stehl|umbring)\w*/i,
+  /\banleitung\b.{0,30}\b(bombe|waffe|sprengstoff)\w*/i,
+  /\bwie\b.{0,30}\b(bombe|sprengstoff)\b.{0,20}\b(bau|herstell|mach)/i,
 ];
 
 export function isHarmRequest(query: string): boolean {
-  return HARM_PATTERNS.some((p) => p.test(query));
+  if (HARM_PATTERNS.some((p) => p.test(query))) return true;
+  // "kaputt" zählt nur GEMEINSAM mit einem Zerstör-Verb (egal welche
+  // Reihenfolge: "mache X kaputt" / "X kaputt machen"), damit
+  // "wie repariere ich mein kaputtes Spielzeug" NICHT anschlägt.
+  const q = query.toLowerCase();
+  if (
+    /\bwie\b/.test(q) &&
+    /\bkaputt\b/.test(q) &&
+    /\b(mach|schlag|hau|tret|zerstör|zerbrech)/.test(q)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export const HARM_RESPONSE = {
