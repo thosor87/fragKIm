@@ -37,22 +37,15 @@ Trägerschaft + Finanzierung + DSFA stehen.
 
 ### Inhaltliche Sicherheit
 
-- **Echte Output-Moderation** statt nur Trigger-Wortliste vor dem LLM:
-  Output-Klassifikator (zweite LLM-Stufe), oder kommerzielle
-  Moderations-API. Catcht Halluzinationen und subtilere Probleme,
-  die unsere Trigger nicht abdecken.
-  → **Umgesetzt:** Mistral Moderation API (EU) als Stufe 2, prüft die
-  generierten Allgemeinwissen-Antworten (ohne Quellbeleg). Treffer →
-  verwerfen + feste Meldung; `selfharm` eskaliert zur Nummer gegen Kummer,
-  `hate_and_discrimination` deckt Mobbing-Inhalte ab. Siehe
-  `backend/src/rag/moderation.ts`. Offen bleibt: jede Antwort prüfen (statt
-  nur Allgemeinwissen), kindspezifischer Prompt-Check für subtilen Ton.
-- **Input-Filter** für Schul-Mobbing-Kontext (Namen aus Klassenlisten
-  hardcoded ausblenden? oder LLM-basiertes „ist das eine konkrete
-  Privatperson"-Pattern).
-- **Test-Suite** für Pre-Filter und RAG-Robustheit mit 200+
-  Beispielfragen, darunter Adversarial-Cases (Bombe bauen, Suizid,
-  Sex-Aufklärung, Drogen, Schul-Konflikte).
+- **Moderation ausbauen** (Basis steht, siehe „erledigt"): jede Antwort
+  prüfen statt nur die Allgemeinwissen-Anteile; kindspezifischer Ton-Check
+  jenseits der Standard-Kategorien.
+- **Muttersprachliche Prüfung** der nicht-deutschen Sicherheits-Texte plus
+  sprach-spezifische Wortlisten. Bekannte Lücke: eine türkische
+  Selbstverletzungs-Formulierung wird gestoppt, aber ohne Hilfe-Verweis.
+- **Konkrete Privatperson erkennen** (Schul-Mobbing-Kontext): Namen aus
+  Klassenlisten ausblenden oder per Muster „ist das eine reale Privatperson?".
+  (Mobbing-Opfer lösen bereits eine Eskalation aus.)
 
 ## Was den Schulalltag bedient
 
@@ -61,7 +54,8 @@ Trägerschaft + Finanzierung + DSFA stehen.
 - **Schul-Login** statt geteiltem Demo-Passwort: per Schul-SSO
   (Bildungslogin Niedersachsen, IServ, Microsoft for Education),
   oder schulspezifische Tokens.
-- **Rate-Limiting** pro Schüler, pro Schule, pro Tag.
+- **Rate-Limiting pro Schüler/Schule/Tag** (ein generisches IP-Limit steht
+  bereits, das schulbezogene braucht Identitäten).
 - **Sperrzeiten** (z. B. nur während Schulstunden, oder nicht nachts).
 
 ### Inhaltliche Breite
@@ -72,8 +66,9 @@ Trägerschaft + Finanzierung + DSFA stehen.
   - Seitenstark-Verbund
   - KiKA-Lexikon
   - bpb-Kinderseiten
-- **Mehrsprachigkeit**: Türkisch, Russisch, Ukrainisch, Arabisch,
-  Englisch. Mistral kann das, braucht aber sorgfältige Prompt-Anpassung.
+
+  (Mehrsprachigkeit ist umgesetzt, siehe „erledigt"; offen ist nur das
+  muttersprachliche Review, siehe Inhaltliche Sicherheit.)
 
 ### Schulbetrieb-Werkzeuge
 
@@ -100,9 +95,10 @@ Trägerschaft + Finanzierung + DSFA stehen.
 
 ### Pflicht-Compliance
 
-- **Barrierefreiheits-Audit** nach BFSG / WCAG AA. Screenreader-Test,
-  Tastatur-Bedienung, Farbkontraste, Schriftgrößen. Atkinson Hyperlegible
-  ist schon eingebaut, aber nicht selbst gehostet.
+- **Formales Barrierefreiheits-Audit** nach BFSG / WCAG AA mit echtem
+  Screenreader-Test. Grundlagen sind umgesetzt (Skip-Link, Tastatur-Fokus,
+  AA-Kontraste, reduced-motion, Screenreader-Status); das formale Audit und
+  selbst gehostete, gut lesbare Schriften stehen aus.
 - **Sprachvereinfachung-Audit** mit echten Grundschulkindern: liest und
   versteht die Zielgruppe die Antworten? Iterieren am System-Prompt.
 
@@ -129,10 +125,24 @@ Trägerschaft + Finanzierung + DSFA stehen.
 
 ## Was schon erledigt ist (war früher in dieser Liste)
 
+Details der erledigten Punkte: [`CHANGELOG.md`](./CHANGELOG.md), technischer
+Stand: [`README.md`](./README.md).
+
 - ~~Production-Hosting~~ → Vercel, Auto-Deploy aus GitHub
 - ~~Eigene Domain~~ → fragkim.lilapixel.de
 - ~~Webanalyse-Lösung~~ → Umami (cookieless, selbst gehostet)
 - ~~Impressum und Datenschutz~~ → DDG/DSGVO-konform unter
   `/impressum` und `/datenschutz`
-- ~~Linkvorschau, OG-Tags, Favicon, Mobile-Optimierung~~ → siehe
-  v0.1.0-Release
+- ~~Linkvorschau, OG-Tags, Favicon, Mobile-Optimierung~~ → siehe v0.1.0
+- ~~Output-Moderation~~ → Mistral Moderation API (EU), Stufe 2 auf
+  Allgemeinwissen-Antworten
+- ~~Mehrsprachige Input-Moderation~~ → sprach-agnostisches Sicherheitsnetz
+  vor dem LLM (fängt Krisen auch in anderen Sprachen)
+- ~~Mehrsprachigkeit~~ → UI, Antworten und Sicherheits-Texte in 6 Sprachen
+  (de/en/tr/ru/uk/ar, RTL); offen bleibt das muttersprachliche Review
+- ~~Rate-Limit (generisch)~~ → pro IP auf die kostenpflichtigen Endpunkte
+- ~~Test-Suite~~ → über 200 Adversarial-Cases (Vitest, ohne LLM-Calls)
+- ~~Barrierefreiheits-Grundlagen~~ → Skip-Link, Fokus, AA-Kontrast,
+  reduced-motion, Screenreader-Status
+- ~~Mobbing-Opfer-Eskalation, Grounding-Fix, Kombi-Antworten~~ → siehe
+  v0.3.0 im CHANGELOG
