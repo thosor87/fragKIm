@@ -342,11 +342,28 @@ body { overscroll-behavior-y: contain; }
   text-align: center;
   font-size: 13px;
   color: var(--muted);
-  padding: 12px 16px 80px; /* unten Composer-Höhe einrechnen */
+  padding: 12px 16px 100px; /* unten Composer-Höhe einrechnen */
   max-width: 760px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.footer a { color: var(--muted); }
+.footer-credits { line-height: 1.5; }
+.footer-links {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.footer-links span { color: var(--muted); opacity: 0.5; }
+.footer a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer a:hover { color: var(--text); }
 
 @media (max-width: 520px) {
   html, body, #root { font-size: 17px; }

@@ -482,31 +482,46 @@ export function App() {
       </form>
 
       <footer className="footer">
-        Inhalte aus{" "}
-        <a
-          href="https://klexikon.zum.de/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Klexikon
-        </a>{" "}
-        und{" "}
-        <a
-          href="https://grundschulwiki.zum.de/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Grundschulwiki
-        </a>
-        , beide lizenziert unter{" "}
-        <a
-          href="https://creativecommons.org/licenses/by-sa/4.0/deed.de"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          CC BY-SA
-        </a>
-        . Nichts an diesem Gespräch wird gespeichert.
+        <div className="footer-credits">
+          Inhalte aus{" "}
+          <a
+            href="https://klexikon.zum.de/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Klexikon
+          </a>{" "}
+          und{" "}
+          <a
+            href="https://grundschulwiki.zum.de/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Grundschulwiki
+          </a>
+          , beide lizenziert unter{" "}
+          <a
+            href="https://creativecommons.org/licenses/by-sa/4.0/deed.de"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            CC BY-SA
+          </a>
+          . Nichts an diesem Gespräch wird gespeichert.
+        </div>
+        <nav className="footer-links">
+          <a href="/impressum">Impressum</a>
+          <span>·</span>
+          <a href="/datenschutz">Datenschutz</a>
+          <span>·</span>
+          <a
+            href="https://github.com/thosor87/fragKIm"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Quellcode
+          </a>
+        </nav>
       </footer>
     </>
   );

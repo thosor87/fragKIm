@@ -9,6 +9,7 @@ import { config } from "./config.js";
 import { ask, type ChatTurn, type SourceFlags, DEFAULT_SOURCES } from "./rag/pipeline.js";
 import { registerAuth } from "./auth.js";
 import { registerArchiveViewer } from "./archive-viewer.js";
+import { registerLegalPages } from "./legal-pages.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +41,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     return "User-agent: *\nDisallow: /\n";
   });
 
+  registerLegalPages(app);
   registerAuth(app);
   registerArchiveViewer(app);
 

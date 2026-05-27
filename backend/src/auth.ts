@@ -21,6 +21,9 @@ function isPublic(url: string): boolean {
   if (url === "/healthz" || url === "/robots.txt") return true;
   if (url === "/login" || url.startsWith("/login?")) return true;
   if (url === "/api/login" || url.startsWith("/api/login?")) return true;
+  // Legal-Pages sind oeffentlich erreichbar (Pflicht nach DDG/DSGVO)
+  if (url === "/impressum" || url.startsWith("/impressum?")) return true;
+  if (url === "/datenschutz" || url.startsWith("/datenschutz?")) return true;
   return false;
 }
 
