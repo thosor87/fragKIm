@@ -1,81 +1,114 @@
-# fragKIm – PoC
+# frag KIm
 
-Kindersichere KI-gestützte Frage-Antwort-Suche, RAG über das Klexikon.
-**Das ist ein PoC, keine Produktion.** Zugang nur passwortgeschützt, EU-gehostet.
-Vollständige Leitplanken in [`CLAUDE.md`](./CLAUDE.md).
+Kindersichere KI-Wissensauskunft, angelehnt an die Idee von fragFINN.
+**Proof of Concept**, interne Demo-Phase. Live: <https://fragkim.lilapixel.de>
 
-## Schnellstart (lokal)
+> Diese Instanz ist eine interne Entwicklungs-Demo und **nicht für Kinder
+> bestimmt**. Vollständige Leitplanken in [`CLAUDE.md`](./CLAUDE.md).
+
+## Was es macht
+
+- Chat-Interface, Antworten kommen aus
+  [Klexikon](https://klexikon.zum.de/) (live) und
+  [Grundschulwiki](https://github.com/thosor87/grundschulwiki-archiv)
+  (lokales Archive, weil das Original im Juni 2026 abgeschaltet wird).
+- Klassisches **RAG-Pattern**: Frage → semantische Suche → Top-Treffer
+  als Kontext an Mistral → kindgerechte Zusammenfassung mit
+  Quellenangabe.
+- **Allgemeinwissen-Fallback** für Fragen, die in den Wikis nicht
+  stehen (klar gekennzeichnet mit „Allgemeinwissen: …").
+- **Pre-Filter** für sensible Themen, Beziehungsangebote und
+  Vandalismus-Anleitungen (kein LLM-Call, fester Hinweistext).
+- **Single-Turn-Memory** im Browser (letzte 6 Turns), nichts wird
+  serverseitig gespeichert.
+- **Vorlesen** (ElevenLabs TTS) und **Spracheingabe** (ElevenLabs
+  Scribe STT) optional.
+- **Archive-Viewer** unter `/archive/grundschulwiki/:title`: jeder
+  archivierte Artikel als lesbare HTML-Seite mit Bildern und Wiki-Links
+  innerhalb des Archivs. Funktioniert auch nach der Original-Abschaltung.
+
+## Stack
+
+| Schicht | Technik |
+|---|---|
+| Frontend | React + Vite, Single-Page Chat-UI |
+| Backend | Fastify (Node 20), als Vercel Serverless Function |
+| LLM | Mistral La Plateforme (`mistral-small-latest`, EU) |
+| TTS / STT | ElevenLabs (Stimme „Sarah", Scribe v1) |
+| Retrieval | Live MediaWiki-API + GitHub-Archive-Mirror |
+| Auth | Single-Password mit signiertem Cookie + Magic-Link |
+| Hosting | Vercel (Production), eigene Domain via DNS |
+| Webanalyse | Umami (selbst gehostet, cookieless) |
+
+## Lokal starten
 
 ```bash
-# 1. Abhängigkeiten
 npm install
-
-# 2. Environment
 cp .env.example .env
-# MISTRAL_API_KEY eintragen (https://console.mistral.ai/)
-# DEMO_BASIC_AUTH_USER / DEMO_BASIC_AUTH_PASSWORD setzen
+# Werte in .env eintragen (mindestens DEMO_PASSWORD, MISTRAL_API_KEY)
 
-# 3. Qdrant starten
-npm run qdrant:up
-
-# 4. Klexikon-Dump bereitstellen
-# Lege eine JSONL-Datei unter ./klexikon-dump/articles.jsonl an,
-# je Zeile: { "title": "...", "url": "https://klexikon.zum.de/wiki/...", "text": "..." }
-# Quelle: XML-Dump des ZUM-Wikis (bevorzugt) oder respektvoller Crawler.
-
-# 5. Indexieren
-npm run index
-
-# 6. Backend + Frontend im Dev-Modus
-npm run dev:backend     # :8080
-npm run dev:frontend    # :5173 (proxy → :8080)
+npm run dev:backend     # :8080 (Backend + statisch serviertes Frontend)
+npm run dev:frontend    # :5173 (HMR, Proxy zur Backend-API)
 ```
 
-Öffne <http://localhost:5173/>. Im Production-Build (s. unten) liefert
-Fastify das Frontend mit aus.
+Optional Voice (TTS + STT):
 
-## Production-Build (lokal)
+```
+ELEVENLABS_API_KEY=sk_...
+ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL  # Sarah (Default-Voice, Free API)
+```
+
+Production-Build lokal testen:
 
 ```bash
 npm run build
 npm start
-# → http://localhost:8080/
+# → http://localhost:8080
 ```
 
-## Deployment (Fly.io, Region fra)
+## Deployment
 
-```bash
-# Qdrant zuerst (eigene App mit Volume)
-fly apps create fragkim-qdrant
-fly volumes create qdrant_data --region fra --size 1 --app fragkim-qdrant
-fly deploy --app fragkim-qdrant -c fly.qdrant.toml
+Aktuell läuft ein Auto-Deploy bei jedem Push auf `main`:
 
-# Backend + Frontend (eine App)
-fly apps create fragkim-poc
-fly secrets set --app fragkim-poc \
-  MISTRAL_API_KEY=... \
-  QDRANT_URL=http://fragkim-qdrant.internal:6333 \
-  DEMO_BASIC_AUTH_USER=demo \
-  DEMO_BASIC_AUTH_PASSWORD=...
-fly deploy --app fragkim-poc
-```
+- **Vercel** zieht den Build (`vercel.json` definiert Function +
+  outputDirectory). Eine Catch-all-Function leitet alle Requests durch
+  Fastify, statische Assets werden von `@fastify/static` ausgeliefert.
+- Sensible Env-Vars (`MISTRAL_API_KEY`, `DEMO_PASSWORD`,
+  `ELEVENLABS_API_KEY`) liegen in Vercel-Projekt-Settings.
 
-Anschließend Indexing einmalig laufen lassen (lokal, mit `QDRANT_URL` auf
-einen `fly proxy 6333 -a fragkim-qdrant` getunnelten Port).
+Wer die Anwendung migrieren möchte (z. B. auf STACKIT/Hetzner für
+Phase 2): siehe `Dockerfile` und `fly.toml`/`fly.qdrant.toml` für eine
+Container-basierte Variante. Lokales Embedding-Retrieval mit Qdrant ist
+ebenfalls eingebaut, aktivierbar via `RETRIEVAL_PROVIDER=local`.
 
-## Was der PoC NICHT hat
+## Architektur und Designentscheidungen
 
-Siehe [`CLAUDE.md`](./CLAUDE.md) → Abschnitt „Was im PoC bewusst FEHLT". Wenn
-der Wunsch aufkommt, eines davon mitzubauen: nicht tun, in `PHASE_2.md` notieren.
+Vollständige Begründungen, was im PoC drin ist und was bewusst nicht:
+[`CLAUDE.md`](./CLAUDE.md). Phase-2-Backlog (DSFA, Trägerschaft,
+Schul-Login, mehr Quellen): [`PHASE_2.md`](./PHASE_2.md).
 
-## Struktur
+Wichtigste Designentscheidungen:
 
-```
-backend/        Fastify + RAG-Pipeline + Basic Auth
-frontend/       Vite + React, eine Seite, eine Suchleiste
-shared/         Trigger-Liste für Eskalation
-scripts/        Indexing (Klexikon → Qdrant)
-Dockerfile      Multi-stage Build (Frontend + Backend)
-fly.toml        App
-fly.qdrant.toml Qdrant separat
-```
+- **Chat-Optik, aber inhaltlich Single-Turn-Wissens-DB**. Keine
+  Companion-Persona, keine Ich-Form als Selbstreferenz, kein
+  Beziehungs- oder Gefühls-Kontext. Begründung im Markenfigur-Abschnitt
+  von CLAUDE.md.
+- **Weg-2-Quellen-Linie**: Klexikon und Grundschulwiki zuerst, dann
+  Allgemeinwissen mit klarem Marker. Reine Quellen-Bindung wäre
+  konservativer, hat aber bei kindlichen Folgefragen zu vielen
+  „Weiß ich nicht"-Antworten geführt.
+- **Voice serverseitig via ElevenLabs**, weil die Browser-Speech-API
+  unter macOS unzuverlässig ist (Mikro-Indikator-Flackern, Anfangs-
+  Clipping beim Vorlesen).
+- **Pre-Filter vor dem LLM** für sensible Themen, Beziehungsangebote
+  und Schadens-Anleitungen. Kein LLM-Call bei Treffern, fester
+  Hinweistext mit Nummer gegen Kummer 116 111 (bei akuten Themen).
+
+## Lizenz
+
+Code: [CC BY-NC-SA 4.0](./LICENSE) (keine kommerzielle Nutzung,
+Änderungen müssen bei Weitergabe unter derselben Lizenz veröffentlicht
+werden). Für kommerzielle Nutzung: Kontakt aufnehmen.
+
+Klexikon- und Grundschulwiki-Inhalte: CC BY-SA 4.0 ihrer jeweiligen
+Quellen, nicht Teil dieser Lizenz.
