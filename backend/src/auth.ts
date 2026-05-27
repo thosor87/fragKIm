@@ -40,6 +40,7 @@ function isPublic(url: string): boolean {
   // Legal-Pages sind oeffentlich erreichbar (Pflicht nach DDG/DSGVO)
   if (url === "/impressum" || url.startsWith("/impressum?")) return true;
   if (url === "/datenschutz" || url.startsWith("/datenschutz?")) return true;
+  if (url === "/ueber" || url.startsWith("/ueber?")) return true;
   // Static assets, die Linkvorschauen und Browser-Apps brauchen
   const pathOnly = url.split("?")[0];
   if (PUBLIC_STATIC.has(pathOnly)) return true;
