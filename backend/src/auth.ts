@@ -19,6 +19,19 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
+// Pfade, die Linkvorschau-Scraper, Browser-Tabs und PWA-Installer abrufen
+// koennen muessen, ohne sich einloggen zu muessen.
+const PUBLIC_STATIC = new Set<string>([
+  "/og-image.png",
+  "/og-image.svg",
+  "/favicon.svg",
+  "/favicon.ico",
+  "/apple-touch-icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/site.webmanifest",
+]);
+
 function isPublic(url: string): boolean {
   // url enthält Query, deshalb startsWith bzw. exakte Vergleiche
   if (url === "/healthz" || url === "/robots.txt") return true;
@@ -27,6 +40,9 @@ function isPublic(url: string): boolean {
   // Legal-Pages sind oeffentlich erreichbar (Pflicht nach DDG/DSGVO)
   if (url === "/impressum" || url.startsWith("/impressum?")) return true;
   if (url === "/datenschutz" || url.startsWith("/datenschutz?")) return true;
+  // Static assets, die Linkvorschauen und Browser-Apps brauchen
+  const pathOnly = url.split("?")[0];
+  if (PUBLIC_STATIC.has(pathOnly)) return true;
   return false;
 }
 
@@ -36,8 +52,26 @@ const LOGIN_PAGE = (error?: string): string => `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>frag KIm — Demo-Login</title>
+  <title>frag KIm — Kindersichere Wissens-KI</title>
+  <meta name="description" content="frag KIm ist ein Proof of Concept einer kindersicheren KI-Wissensauskunft. Antworten aus Klexikon und Grundschulwiki, RAG-Architektur, EU-gehostet. Interne Entwicklungs-Demo, nicht für Kinder bestimmt.">
+
+  <!-- Linkvorschau (greift auch wenn der Scraper nur die Login-Seite sieht) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="frag KIm">
+  <meta property="og:title" content="frag KIm — Kindersichere Wissens-KI">
+  <meta property="og:description" content="Antworten aus Klexikon und Grundschulwiki, kindgerecht zusammengefasst von einer KI. EU-gehostet. Interne Demo, nicht für Kinder bestimmt.">
+  <meta property="og:url" content="https://fragkim.lilapixel.de/">
+  <meta property="og:image" content="https://fragkim.lilapixel.de/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="de_DE">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="frag KIm — Kindersichere Wissens-KI">
+  <meta name="twitter:description" content="Antworten aus Klexikon und Grundschulwiki. EU-gehostet. Interne Demo, nicht für Kinder bestimmt.">
+  <meta name="twitter:image" content="https://fragkim.lilapixel.de/og-image.png">
+
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta name="theme-color" content="#2bb3a3">
   <style>
     :root {
