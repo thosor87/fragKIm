@@ -50,21 +50,10 @@
       kindgerecht zusammengefasst von einer KI.
     </text>
 
-    <!-- Tags -->
-    <g transform="translate(6, 470)">
-      <g>
-        <rect x="0" y="0" width="92" height="34" rx="17" fill="#2A2D34"/>
-        <text x="46" y="23" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">RAG</text>
-      </g>
-      <g transform="translate(104,0)">
-        <rect x="0" y="0" width="120" height="34" rx="17" fill="#2bb3a3"/>
-        <text x="60" y="23" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">EU-Hosting</text>
-      </g>
-      <g transform="translate(236,0)">
-        <rect x="0" y="0" width="150" height="34" rx="17" fill="#FFC857"/>
-        <text x="75" y="23" font-family="-apple-system, sans-serif" font-size="16" font-weight="600" fill="#2A2D34" text-anchor="middle">Proof of Concept</text>
-      </g>
-    </g>
+    <!-- Quellen-Hinweis statt Tech-Tags -->
+    <text x="6" y="498" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="500" fill="#6b6f78">
+      Quellen: Klexikon · Grundschulwiki
+    </text>
   </g>
 
   <!-- Footer-Bereich -->

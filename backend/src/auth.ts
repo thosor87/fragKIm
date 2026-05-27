@@ -158,11 +158,6 @@ const LOGIN_PAGE = (error?: string): string => `<!doctype html>
         und werden kindgerecht zusammengefasst. Sensible Themen und Beziehungsfragen
         werden bewusst abgeblockt.
       </p>
-      <p style="margin-top:14px">
-        <span class="pill">RAG</span>
-        <span class="pill">EU-Hosting</span>
-        <span class="pill">PoC</span>
-      </p>
       <p style="margin-top:14px;font-size:14px;color:var(--muted)">
         Diese Instanz ist eine interne Entwicklungs-Demo, nicht für Kinder
         bestimmt. Zugang nur mit Demo-Passwort.
