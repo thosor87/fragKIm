@@ -224,12 +224,15 @@ export function registerAuth(app: FastifyInstance): void {
 
     if (hasValidCookie(req)) return;
 
-    // Browser-Navigation → Login-Seite. API-Calls → 401 JSON.
+    // API-Calls → 401 JSON
     if (req.url.startsWith("/api/")) {
       reply.code(401);
       return { error: "Bitte zuerst einloggen." };
     }
-    reply.type("text/html").code(401).send(LOGIN_PAGE());
+    // Browser-Navigation → Login-Seite mit Status 200, damit Linkvorschau-
+    // Scraper (Slack, WhatsApp, Mail-Clients) die OG-Tags lesen. Die
+    // eigentlichen Inhalte sind ja durch die API-Auth geschuetzt.
+    reply.type("text/html").send(LOGIN_PAGE());
     return reply;
   });
 
@@ -237,7 +240,7 @@ export function registerAuth(app: FastifyInstance): void {
   app.post<{ Body: { password?: string } }>("/api/login", async (req, reply) => {
     const pw = (req.body?.password ?? "").toString();
     if (!pw || !safeEqual(tokenFromPassword(pw), expectedToken)) {
-      reply.type("text/html").code(401).send(LOGIN_PAGE("Passwort falsch."));
+      reply.type("text/html").send(LOGIN_PAGE("Passwort falsch."));
       return reply;
     }
     setSession(reply);
