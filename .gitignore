@@ -9,3 +9,13 @@ qdrant_storage/
 klexikon-dump/
 *.tsbuildinfo
 .vercel
+
+# Private Kommunikation / Outreach (Anschreiben, Pitches, Notizen) — nie ins
+# öffentliche Repo. Solche Dateien in kommunikation/ ablegen oder entsprechend
+# benennen.
+kommunikation/
+privat/
+*anschreiben*
+*ANSCHREIBEN*
+*.privat.md
+*.intern.md
