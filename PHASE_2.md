@@ -37,24 +37,11 @@ Trägerschaft + Finanzierung + DSFA stehen.
 
 ### Inhaltliche Sicherheit
 
-- **Moderation ausbauen** (Basis steht, siehe „erledigt"): jede Antwort
-  prüfen statt nur die Allgemeinwissen-Anteile; kindspezifischer Ton-Check
-  jenseits der Standard-Kategorien.
 - **Muttersprachliche Prüfung** der nicht-deutschen Sicherheits-Texte plus
   sprach-spezifische Wortlisten. Bekannte Lücke: eine türkische
   Selbstverletzungs-Formulierung wird gestoppt, aber ohne Hilfe-Verweis.
 
 ## Was den Schulalltag bedient
-
-### Identitäten
-
-- **Schul-Login** statt geteiltem Demo-Passwort: per Schul-SSO
-  (Bildungslogin Niedersachsen, IServ, Microsoft for Education),
-  oder schulspezifische Tokens.
-- **Rate-Limiting pro Schüler/Schule/Tag** (ein generisches IP-Limit steht
-  bereits, das schulbezogene braucht Identitäten).
-- **Optionale Sperrzeiten**, falls ein Träger sie wünscht (setzt Identitäten
-  voraus).
 
 ### Inhaltliche Breite
 
