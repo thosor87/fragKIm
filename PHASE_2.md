@@ -17,9 +17,9 @@ Trägerschaft + Finanzierung + DSFA stehen.
   bei systematischer Verarbeitung personenbezogener Daten von
   Minderjährigen. Externe Datenschutzberatung sinnvoll.
 - **Auftragsverarbeitungsverträge (AVV)** mit jedem Drittanbieter:
-  Mistral (EU, einfach), ElevenLabs (US, kritisch), Vercel
-  (US, Schrems-III-Risiko prüfen), GitHub (nur für Archive,
-  möglicherweise migrierbar).
+  Mistral (EU, einfach), ElevenLabs (US, kritisch), Vercel (US —
+  Drittlandtransfer nach Art. 44 ff. DSGVO bzw. EU-US Data Privacy Framework
+  prüfen), GitHub (nur für Archive, möglicherweise migrierbar).
 - **Rechtsgrundlage** für Datenverarbeitung mit Minderjährigen
   abklären: Art. 6 DSGVO + Art. 8 für Kinder, plus
   bundesländerspezifische Schulgesetze.
@@ -29,9 +29,9 @@ Trägerschaft + Finanzierung + DSFA stehen.
 - **Hosting weg von Vercel** auf STACKIT, Hetzner oder IONOS Cloud.
   Container-Setup (`Dockerfile`/`fly.toml`) ist bereits da, Migration
   überschaubar.
-- **ElevenLabs ersetzen** durch eine EU-gehostete STT/TTS-Lösung:
-  Gladia (Paris), oder selbst gehostetes Whisper-CPP + Coqui TTS.
-  ElevenLabs ist im PoC akzeptabel, im Produktivbetrieb nicht.
+- **ElevenLabs ersetzen** durch eine EU-gehostete STT/TTS-Lösung (z. B.
+  Gladia, Paris) oder selbst gehostete Open-Source-Modelle. ElevenLabs ist
+  im PoC akzeptabel, im Produktivbetrieb nicht.
 - **GitHub-Archive evtl. spiegeln** auf eigenes Storage, falls
   GitHub als US-Anbieter rechtlich problematisch wird.
 
@@ -53,30 +53,33 @@ Trägerschaft + Finanzierung + DSFA stehen.
   oder schulspezifische Tokens.
 - **Rate-Limiting pro Schüler/Schule/Tag** (ein generisches IP-Limit steht
   bereits, das schulbezogene braucht Identitäten).
-- **Sperrzeiten** (z. B. nur während Schulstunden, oder nicht nachts).
+- **Optionale Sperrzeiten**, falls ein Träger sie wünscht (setzt Identitäten
+  voraus).
 
 ### Inhaltliche Breite
 
 - **Weitere Quellen** in den RAG-Pool aufnehmen:
   - Hanisauland (bpb, politische Bildung)
-  - fragFINN-Whitelist als Crawling-Hint
   - Seitenstark-Verbund
   - KiKA-Lexikon
   - bpb-Kinderseiten
 
+  Jeweils Lizenz und Zugang klären; nicht jede Quelle lässt sich als sauberer
+  RAG-Korpus nutzen.
+
   (Mehrsprachigkeit ist umgesetzt, siehe „erledigt"; offen ist nur das
   muttersprachliche Review, siehe Inhaltliche Sicherheit.)
 
-### Schulbetrieb-Werkzeuge
+### Aufklärung
 
-- **Admin-Oberfläche pro Schule**: aktivieren/deaktivieren von
-  Sprachfunktionen, Einsehen aggregierter Aktivität (keine
-  individuellen Logs), eigene Trigger-Wörter ergänzen.
-- **Lehrkräfte-Sicht**: Sample der gestellten Fragen für eine Klasse
-  (anonymisiert), damit Lehrkraft sehen kann, was Kinder bewegt, ohne
-  individuelle Überwachung.
-- **Eltern-Information**: kurzes Aufklärungs-Dokument, was die KI macht
-  und nicht macht, plus klare Abgrenzung zu Companion-Bots.
+- **Eltern-Information**: kurzes Dokument, was die KI macht und nicht macht,
+  plus klare Abgrenzung zu Companion-Bots.
+
+> Bewusst **nicht** geplant: Lehrer-Mitlese-Funktionen, Dashboards mit
+> Frage-Inhalten, individuelle oder klassenbezogene Aktivitäts-Auswertung.
+> Das widerspricht der unbegleiteten, datensparsamen Linie (siehe README
+> „Was es nicht macht"). Wer Mitlese-/Aufsichtsfunktionen braucht, ist mit
+> telli/AIS.chat oder fobizz besser bedient.
 
 ### Produktionsbetrieb
 
