@@ -44,6 +44,8 @@ export const resources = {
       footerCreditShort: "CC BY-SA · nichts wird gespeichert",
       footerNavLabel: "Rechtliches und Quellen",
       languageLabel: "Sprache",
+      skipToContent: "Zum Inhalt springen",
+      loading: "Antwort wird geladen …",
     },
   },
   en: {
@@ -76,6 +78,8 @@ export const resources = {
       footerCreditShort: "CC BY-SA · nothing is stored",
       footerNavLabel: "Legal and sources",
       languageLabel: "Language",
+      skipToContent: "Skip to content",
+      loading: "Loading answer …",
     },
   },
   tr: {
@@ -108,6 +112,8 @@ export const resources = {
       footerCreditShort: "CC BY-SA · hiçbir şey saklanmaz",
       footerNavLabel: "Yasal ve kaynaklar",
       languageLabel: "Dil",
+      skipToContent: "İçeriğe geç",
+      loading: "Yanıt yükleniyor …",
     },
   },
   ru: {
@@ -140,6 +146,8 @@ export const resources = {
       footerCreditShort: "CC BY-SA · ничего не сохраняется",
       footerNavLabel: "Правовая информация и источники",
       languageLabel: "Язык",
+      skipToContent: "Перейти к содержимому",
+      loading: "Загрузка ответа …",
     },
   },
   uk: {
@@ -172,6 +180,8 @@ export const resources = {
       footerCreditShort: "CC BY-SA · нічого не зберігається",
       footerNavLabel: "Правова інформація та джерела",
       languageLabel: "Мова",
+      skipToContent: "Перейти до вмісту",
+      loading: "Завантаження відповіді …",
     },
   },
   ar: {
@@ -204,6 +214,8 @@ export const resources = {
       footerCreditShort: "CC BY-SA · لا يتم حفظ أي شيء",
       footerNavLabel: "معلومات قانونية ومصادر",
       languageLabel: "اللغة",
+      skipToContent: "تخطَّ إلى المحتوى",
+      loading: "جارٍ تحميل الإجابة …",
     },
   },
 } as const;

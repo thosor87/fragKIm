@@ -85,7 +85,9 @@ export function App() {
   const inFlightRef = useRef(false);
 
   useEffect(() => {
-    scrollEnd.current?.scrollIntoView({ behavior: "smooth" });
+    // Sanftes Scrollen nur, wenn der Nutzer keine reduzierte Bewegung wünscht.
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    scrollEnd.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
   }, [messages, loading]);
 
   const stopAudio = useCallback(() => {
@@ -295,6 +297,7 @@ export function App() {
 
   return (
     <>
+      <a className="skip-link" href="#main">{t("skipToContent")}</a>
       <div className="demo-banner" role="status">{t("banner")}</div>
 
       <header className="brand">
@@ -309,9 +312,10 @@ export function App() {
           <h1>{t("brand")}</h1>
         </div>
         <div className="brand-controls">
-          <label className="lang-switch" aria-label={t("languageLabel")}>
+          <label className="lang-switch">
             <select
               value={lang}
+              aria-label={t("languageLabel")}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
             >
               {LANGS.map((l) => (
@@ -353,7 +357,7 @@ export function App() {
         })}
       </div>
 
-      <main className="chat">
+      <main className="chat" id="main" tabIndex={-1}>
         {messages.length === 0 && (
           <div className="hint">
             <p>
@@ -382,12 +386,12 @@ export function App() {
                 }
               >
                 {(() => {
-                  const img = m.sources.find((s) => s.imageUrl)?.imageUrl;
-                  return img ? (
+                  const withImg = m.sources.find((s) => s.imageUrl);
+                  return withImg?.imageUrl ? (
                     <img
                       className="bubble-image"
-                      src={img}
-                      alt=""
+                      src={withImg.imageUrl}
+                      alt={withImg.title}
                       loading="lazy"
                     />
                   ) : null;
@@ -437,14 +441,15 @@ export function App() {
           {loading && (
             <li className="bubble assistant loading">
               <div className="bubble-body">
-                <span className="dots">
+                <span className="dots" aria-hidden="true">
                   <span /> <span /> <span />
                 </span>
+                <span className="visually-hidden">{t("loading")}</span>
               </div>
             </li>
           )}
           {error && (
-            <li className="bubble assistant error">
+            <li className="bubble assistant error" role="alert">
               <div className="bubble-body">{error}</div>
             </li>
           )}
@@ -498,7 +503,7 @@ export function App() {
             </button>
           </div>
           <button type="submit" className="send-btn" disabled={loading || !question.trim()}>
-            Senden
+            {t("send")}
           </button>
         </div>
       </form>
