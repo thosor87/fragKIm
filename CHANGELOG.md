@@ -4,6 +4,22 @@ Alle nennenswerten Änderungen an frag KIm. Format angelehnt an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.2.1] – 2026-05-27
+
+### Behoben
+- **Kritisch: selfharm-Eskalation verfehlt bei nicht-deutschen Formulierungen.**
+  Mistral setzt das `selfharm`-Boolean-Flag bei manchen Sprachen nicht,
+  obwohl der Score hoch ist — „Artık yaşamak istemiyorum" (tr, „ich will
+  nicht mehr leben") lieferte Score 0.80, Flag `false`, und rutschte als
+  „weiß ich nicht" durch, statt zur Nummer gegen Kummer zu eskalieren.
+  Jetzt wird `selfharm` über Flag **oder** Score (≥ 0.5) erkannt, auf Input
+  und Output. Verifiziert gegen die echte Moderation-API.
+
+### Bekannte Einschränkung
+- Mistrals Moderation verfehlt manche türkische Selbstverletzungs-Formulierungen
+  ganz (z.B. „kendime zarar vermek istiyorum" → Score 0.002). Sprach-spezifische,
+  von Muttersprachlern geprüfte Wortlisten bleiben für echten Einsatz nötig.
+
 ## [0.2.0] – 2026-05-27
 
 Sicherheits- und Mehrsprachigkeits-Ausbau. Schwerpunkt: die Leitplanken
@@ -62,5 +78,6 @@ Erster Demo-Release.
 - Single-Password-Auth mit Cookie + Magic-Link, Impressum/Datenschutz.
 - Deployment auf Vercel, Domain fragkim.lilapixel.de.
 
+[0.2.1]: https://github.com/thosor87/fragKIm/releases/tag/v0.2.1
 [0.2.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.2.0
 [0.1.0]: https://github.com/thosor87/fragKIm/releases/tag/v0.1.0
