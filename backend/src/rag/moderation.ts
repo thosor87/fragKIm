@@ -35,9 +35,23 @@ const BLOCK_CATEGORIES = [
 // Beim INPUT blocken wir die Nicht-Krisen-Kategorien nur bei hoher Konfidenz.
 // Grund: Sachfragen aus einem Kinderlexikon streifen diese Themen ständig
 // ("Wie jagt ein Löwe?", "Wie ist Hitler gestorben?", "Was ist Krieg?").
-// selfharm dagegen wird am Flag eskaliert — der Fall ist kritisch und kollidiert
-// kaum mit Wissensfragen.
 const INPUT_BLOCK_THRESHOLD = 0.85;
+
+// selfharm wird NICHT nur am Boolean-Flag erkannt: Mistral setzt das Flag bei
+// manchen (v.a. nicht-deutschen) Formulierungen nicht, obwohl der Score hoch
+// ist — z.B. "Artık yaşamak istemiyorum" (tr) → Score 0.80, Flag false. Eine
+// Krise zu verpassen ist katastrophal, ein Hilfe-Hinweis bei einer Grenzfrage
+// verschmerzbar. Darum eskalieren wir hier schon ab einem deutlich niedrigeren
+// Score. Reine Sachfragen liegen klar darunter (Vulkan/Gepard ~0, "Was ist
+// Suizid?" ~0.19).
+const SELFHARM_SCORE_THRESHOLD = 0.5;
+
+function isSelfharm(
+  categories: Record<string, boolean>,
+  scores: Record<string, number>,
+): boolean {
+  return !!categories[SELFHARM] || (scores[SELFHARM] ?? 0) >= SELFHARM_SCORE_THRESHOLD;
+}
 
 let mistralClient: import("@mistralai/mistralai").Mistral | null = null;
 
@@ -48,23 +62,27 @@ type ModerationResult = {
 
 // --- Verdict-Logik (deterministisch, unit-getestet) ------------------------
 
-// OUTPUT: an der generierten Antwort sind wir strenger und vertrauen den
-// Boolean-Flags der API (Eskalation hat Vorrang vor Block).
-export function classifyOutput(categories: Record<string, boolean>): ModerationVerdict {
-  if (categories[SELFHARM]) return { action: "escalate", category: SELFHARM };
+// OUTPUT: an der generierten Antwort vertrauen wir bei den Block-Kategorien
+// den Boolean-Flags; selfharm zusätzlich über den Score (s.o.).
+export function classifyOutput(
+  categories: Record<string, boolean>,
+  scores: Record<string, number> = {},
+): ModerationVerdict {
+  if (isSelfharm(categories, scores)) return { action: "escalate", category: SELFHARM };
   for (const cat of BLOCK_CATEGORIES) {
     if (categories[cat]) return { action: "block", category: cat };
   }
   return { action: "allow" };
 }
 
-// INPUT: selfharm am Flag (kritisch), übrige Kategorien nur bei hoher
-// Konfidenz, damit legitime Sachfragen nicht fälschlich geblockt werden.
+// INPUT: selfharm über Flag ODER Score (kritisch, sprach-agnostisch), übrige
+// Kategorien nur bei hoher Konfidenz, damit legitime Sachfragen nicht
+// fälschlich geblockt werden.
 export function classifyInput(
   categories: Record<string, boolean>,
   scores: Record<string, number> = {},
 ): ModerationVerdict {
-  if (categories[SELFHARM]) return { action: "escalate", category: SELFHARM };
+  if (isSelfharm(categories, scores)) return { action: "escalate", category: SELFHARM };
   for (const cat of BLOCK_CATEGORIES) {
     if (categories[cat] && (scores[cat] ?? 1) >= INPUT_BLOCK_THRESHOLD) {
       return { action: "block", category: cat };
@@ -108,7 +126,7 @@ export async function moderateOutput(text: string): Promise<ModerationVerdict> {
   try {
     const r = await runModeration(text);
     if (!r?.categories) return { action: "allow" };
-    return classifyOutput(r.categories);
+    return classifyOutput(r.categories, r.categoryScores ?? {});
   } catch (err) {
     console.warn("[moderation] Output-Moderation nicht erreichbar, lasse Antwort durch:", err);
     return { action: "allow" };

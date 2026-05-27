@@ -78,6 +78,20 @@ describe("Input-Moderation: Verdict-Zuordnung (mit Score-Schwelle)", () => {
     ).toBe("escalate");
   });
 
+  it("selfharm eskaliert über Score, auch wenn Mistral das Flag NICHT setzt", () => {
+    // Realer Fall: "Artık yaşamak istemiyorum" (tr) → Flag false, Score 0.80.
+    expect(
+      classifyInput({ ...NONE, selfharm: false }, { selfharm: 0.802 }).action,
+    ).toBe("escalate");
+  });
+
+  it("selfharm-Score unter der Schwelle eskaliert nicht (Sachfrage)", () => {
+    // "Was ist Suizid?" → Score ~0.19, soll normal beantwortet werden
+    expect(
+      classifyInput({ ...NONE, selfharm: false }, { selfharm: 0.19 }).action,
+    ).toBe("allow");
+  });
+
   it("blockt sexuellen Inhalt nur bei hoher Konfidenz", () => {
     // "Wie entstehen Babys?" könnte leicht sexual-Score haben → nicht blocken
     expect(classifyInput({ ...NONE, sexual: true }, { sexual: 0.5 }).action).toBe("allow");
