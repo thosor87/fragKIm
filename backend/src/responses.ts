@@ -106,7 +106,7 @@ export function harmResponse(lang: string) {
 const OFFTOPIC: Localized = {
   de:
     "Diese Frage kann hier nicht beantwortet werden. " +
-    "Hier geht es nur um Sachfragen, die im Klexikon stehen können " +
+    "Hier geht es nur um Sachfragen, die in einem Kinderlexikon stehen können " +
     "(zum Beispiel über Tiere, Länder, Geschichte oder Wissenschaft). " +
     "Wie lautet deine Sachfrage?",
   en:
