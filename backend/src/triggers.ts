@@ -35,17 +35,9 @@ const SENSITIVE_COOCCURRENCE: [RegExp, RegExp][] = [
 // nicht fälschlich eskalieren.
 const FIRST_PERSON = /\bich\b|\bmir\b|\bmich\b|\bmein/;
 
-export const ESCALATION_RESPONSE = {
-  text:
-    "Das klingt nach einem ernsten Thema. Sprich bitte mit einer erwachsenen " +
-    "Person, der du vertraust, zum Beispiel deinen Eltern, einer Lehrkraft oder " +
-    "deiner Schulsozialarbeit.\n\n" +
-    "Du kannst auch kostenlos und anonym beim Kinder- und Jugendtelefon anrufen:\n" +
-    "Nummer gegen Kummer: 116 111 (Montag bis Samstag, 14 bis 20 Uhr).",
-  sources: [
-    { title: "Nummer gegen Kummer", url: "https://www.nummergegenkummer.de/" },
-  ],
-};
+// Die festen Antwort-Texte (Eskalation, Harm, Off-Topic, Begrüßung) leben
+// jetzt mehrsprachig in responses.ts und werden von der Pipeline anhand der
+// UI-Sprache ausgewählt. Hier nur noch die Erkennungs-Logik.
 
 export function isSensitive(query: string): boolean {
   const q = query.toLowerCase();
@@ -94,14 +86,6 @@ export function isHarmRequest(query: string): boolean {
   return false;
 }
 
-export const HARM_RESPONSE = {
-  text:
-    "Das erkläre ich dir nicht. Anderen Menschen oder ihren Sachen wehzutun " +
-    "ist nicht in Ordnung und oft auch verboten. Auch wenn du wütend bist, " +
-    "bleibt das nicht okay. Wenn dich etwas ärgert, sprich am besten mit " +
-    "einer erwachsenen Person, der du vertraust.",
-};
-
 // ---------- 2) Off-Topic / Companion ---------------------------------------
 // Phrasen, die klar nicht zu Sachfragen passen.
 // Konservativ gehalten: lieber durchlassen als fälschlich abblocken.
@@ -132,18 +116,3 @@ export function isCompanionRequest(query: string): boolean {
 export function isGreetingOnly(query: string): boolean {
   return GREETING_ONLY.test(query.trim());
 }
-
-export const OFFTOPIC_RESPONSE = {
-  text:
-    "Diese Frage kann hier nicht beantwortet werden. " +
-    "Hier geht es nur um Sachfragen, die im Klexikon stehen können " +
-    "(zum Beispiel über Tiere, Länder, Geschichte oder Wissenschaft). " +
-    "Wie lautet deine Sachfrage?",
-};
-
-export const GREETING_RESPONSE = {
-  text:
-    "Hier kannst du Sachfragen stellen, zum Beispiel: " +
-    "„Wie schnell läuft ein Gepard?\" oder „Was ist ein Vulkan?\". " +
-    "Was möchtest du wissen?",
-};

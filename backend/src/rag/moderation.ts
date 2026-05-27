@@ -32,15 +32,8 @@ const BLOCK_CATEGORIES = new Set([
   "hate_and_discrimination",
 ]);
 
-// Feste Meldung, wenn eine Antwort als unpassend verworfen wird (kein
-// Schaden-Vorwurf ans Kind — die Frage selbst war ja durch die Input-Filter
-// gekommen, hier hakt erst die generierte Antwort).
-export const MODERATION_BLOCK_RESPONSE = {
-  text:
-    "Diese Frage kann hier gerade nicht kindgerecht beantwortet werden. " +
-    "Frag am besten eine erwachsene Person, der du vertraust, oder stell " +
-    "eine andere Sachfrage.",
-};
+// Die feste Block-Meldung lebt mehrsprachig in responses.ts
+// (moderationBlockResponse) und wird von der Pipeline ausgewählt.
 
 let mistralClient: import("@mistralai/mistralai").Mistral | null = null;
 

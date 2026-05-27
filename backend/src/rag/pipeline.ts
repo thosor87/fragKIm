@@ -20,14 +20,18 @@ import {
   isCompanionRequest,
   isGreetingOnly,
   isHarmRequest,
-  ESCALATION_RESPONSE,
-  OFFTOPIC_RESPONSE,
-  GREETING_RESPONSE,
-  HARM_RESPONSE,
 } from "../triggers.js";
-import { generate, noAnswer } from "./generator.js";
+import {
+  escalationResponse,
+  harmResponse,
+  offtopicResponse,
+  greetingResponse,
+  noAnswerText,
+  moderationBlockResponse,
+} from "../responses.js";
+import { generate } from "./generator.js";
 import { rewriteQuery } from "./rewrite.js";
-import { moderateOutput, MODERATION_BLOCK_RESPONSE } from "./moderation.js";
+import { moderateOutput } from "./moderation.js";
 
 export type Source = {
   title: string;
@@ -90,7 +94,7 @@ export async function ask(
   const q = question.trim();
   if (!q) {
     return {
-      text: GREETING_RESPONSE.text,
+      text: greetingResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,
@@ -99,9 +103,10 @@ export async function ask(
   }
 
   if (isSensitive(q)) {
+    const esc = escalationResponse(lang);
     return {
-      text: ESCALATION_RESPONSE.text,
-      sources: ESCALATION_RESPONSE.sources,
+      text: esc.text,
+      sources: esc.sources,
       escalated: true,
       noAnswer: false,
       refused: false,
@@ -110,7 +115,7 @@ export async function ask(
 
   if (isHarmRequest(q)) {
     return {
-      text: HARM_RESPONSE.text,
+      text: harmResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,
@@ -120,7 +125,7 @@ export async function ask(
 
   if (isGreetingOnly(q)) {
     return {
-      text: GREETING_RESPONSE.text,
+      text: greetingResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,
@@ -130,7 +135,7 @@ export async function ask(
 
   if (isCompanionRequest(q)) {
     return {
-      text: OFFTOPIC_RESPONSE.text,
+      text: offtopicResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,
@@ -144,7 +149,7 @@ export async function ask(
   // "wie mache ich das Boot von Karl kaputt?" wird.
   if (isHarmRequest(retrievalQuery)) {
     return {
-      text: HARM_RESPONSE.text,
+      text: harmResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,
@@ -160,9 +165,8 @@ export async function ask(
   // selbst, ob es aus Allgemeinwissen antworten kann (Weg 2). Im Stub-Modus
   // braucht es Treffer, sonst gibt's keine Quelle zum Auszug-Zitieren.
   if (strong.length === 0 && config.llmProvider === "stub") {
-    const na = noAnswer();
     return {
-      text: na.text,
+      text: noAnswerText(lang),
       sources: [],
       escalated: false,
       noAnswer: true,
@@ -185,7 +189,7 @@ export async function ask(
   // damit das Modell keinen eigenen Refusal-Text produziert.
   if (out.text === "HARM") {
     return {
-      text: HARM_RESPONSE.text,
+      text: harmResponse(lang).text,
       sources: [],
       escalated: false,
       noAnswer: false,
@@ -194,7 +198,7 @@ export async function ask(
   }
   if (out.noAnswer) {
     return {
-      text: out.text,
+      text: noAnswerText(lang),
       sources: [],
       escalated: false,
       noAnswer: true,
@@ -216,9 +220,10 @@ export async function ask(
   if (out.fromGeneralKnowledge) {
     const verdict = await moderateOutput(cleaned);
     if (verdict.action === "escalate") {
+      const esc = escalationResponse(lang);
       return {
-        text: ESCALATION_RESPONSE.text,
-        sources: ESCALATION_RESPONSE.sources,
+        text: esc.text,
+        sources: esc.sources,
         escalated: true,
         noAnswer: false,
         refused: false,
@@ -226,7 +231,7 @@ export async function ask(
     }
     if (verdict.action === "block") {
       return {
-        text: MODERATION_BLOCK_RESPONSE.text,
+        text: moderationBlockResponse(lang).text,
         sources: [],
         escalated: false,
         noAnswer: false,
