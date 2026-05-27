@@ -17,8 +17,18 @@ Kindersichere KI-Wissensauskunft, angelehnt an die Idee von fragFINN.
   Quellenangabe.
 - **Allgemeinwissen-Fallback** für Fragen, die in den Wikis nicht
   stehen (klar gekennzeichnet mit „Allgemeinwissen: …").
-- **Pre-Filter** für sensible Themen, Beziehungsangebote und
-  Vandalismus-Anleitungen (kein LLM-Call, fester Hinweistext).
+- **Zweistufige Sicherheit**: schnelle deutsche Pre-Filter (Wortlisten/
+  Regex, kein LLM-Call) plus **Mistral-Moderation als sprach-agnostisches
+  Netz** — auf den Input (vor dem LLM) und auf generierte Allgemeinwissen-
+  Antworten. Sensible Themen, Beziehungsangebote, Vandalismus-Anleitungen
+  und Mobbing werden abgefangen; bei Notlagen erscheint die Nummer gegen
+  Kummer.
+- **Mehrsprachig**: Oberfläche, Antworten und Sicherheits-Texte in
+  Deutsch, Englisch, Türkisch, Russisch, Ukrainisch und Arabisch (inkl.
+  RTL). Antworten werden zuverlässig auf Deutsch generiert und übersetzt.
+- **Barrierefreiheit**: Skip-Link, sichtbarer Fokus, Screenreader-Status,
+  WCAG-AA-Kontraste, `prefers-reduced-motion`.
+- **Rate-Limit** pro IP gegen Missbrauch der kostenpflichtigen Endpunkte.
 - **Single-Turn-Memory** im Browser (letzte 6 Turns), nichts wird
   serverseitig gespeichert.
 - **Vorlesen** (ElevenLabs TTS) und **Spracheingabe** (ElevenLabs
@@ -34,6 +44,8 @@ Kindersichere KI-Wissensauskunft, angelehnt an die Idee von fragFINN.
 | Frontend | React + Vite, Single-Page Chat-UI |
 | Backend | Fastify (Node 20), als Vercel Serverless Function |
 | LLM | Mistral La Plateforme (`mistral-small-latest`, EU) |
+| Moderation | Mistral Moderation API (`mistral-moderation-latest`, EU) |
+| i18n | i18next, 6 Sprachen (de/en/tr/ru/uk/ar, RTL) |
 | TTS / STT | ElevenLabs (Stimme „Sarah", Scribe v1) |
 | Retrieval | Live MediaWiki-API + GitHub-Archive-Mirror |
 | Auth | Single-Password mit signiertem Cookie + Magic-Link |
@@ -103,6 +115,16 @@ Wichtigste Designentscheidungen:
 - **Pre-Filter vor dem LLM** für sensible Themen, Beziehungsangebote
   und Schadens-Anleitungen. Kein LLM-Call bei Treffern, fester
   Hinweistext mit Nummer gegen Kummer 116 111 (bei akuten Themen).
+- **Moderation als zweite Verteidigungslinie**: Die deutschen Wortlisten
+  sind schnell und kostenlos, aber blind für andere Sprachen. Deshalb
+  prüft die Mistral-Moderation jede Frage sprach-agnostisch (Eskalation
+  bei Selbstverletzung schon am Flag; übrige Kategorien nur bei hoher
+  Konfidenz, damit Sachfragen wie „Wie jagt ein Löwe?" frei bleiben) und
+  zusätzlich die generierten Allgemeinwissen-Antworten (geprüfte Wiki-
+  Quellen werden nicht erneut moderiert). Fail-open bei API-Ausfall.
+- **Tests**: deterministische Vitest-Suite (>200 Adversarial-Cases) für
+  die Pre-Filter und die Moderations-Zuordnung; bewusst ohne LLM-Calls,
+  damit sie schnell und reproduzierbar bleibt.
 
 ## Lizenz
 

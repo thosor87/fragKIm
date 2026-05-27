@@ -239,8 +239,10 @@ const DATENSCHUTZ_BODY = `
   <ul>
     <li>
       <strong>Mistral AI</strong> (Paris, Frankreich) – als
-      Sprachmodell-Anbieter zur Generierung der Antwort. Anbieter mit
-      Hauptsitz in der EU.
+      Sprachmodell-Anbieter zur Generierung der Antwort sowie zur
+      automatisierten Sicherheitsprüfung der Eingabe und der Antwort
+      (Erkennung kinder­gefährdender Inhalte). Anbieter mit Hauptsitz in
+      der EU.
       <a href="https://mistral.ai/terms#privacy-policy" target="_blank" rel="noopener noreferrer">Mistral Privacy Policy</a>
     </li>
     <li>
