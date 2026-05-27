@@ -203,9 +203,25 @@ export function registerAuth(app: FastifyInstance): void {
     return !!got && safeEqual(got, expectedToken);
   }
 
+  // Bot/Scraper-Erkennung anhand User-Agent. Wichtig damit Linkvorschauen
+  // funktionieren: Bots folgen oft keinen Redirects, deshalb liefern wir
+  // ihnen direkt die OG-getaggte Login-Seite ohne Auto-Login zu versuchen.
+  function isBot(req: FastifyRequest): boolean {
+    const ua = (req.headers["user-agent"] ?? "").toString().toLowerCase();
+    if (!ua) return false;
+    return /bot|crawler|spider|whatsapp|slackbot|telegrambot|discordbot|facebookexternalhit|twitterbot|linkedinbot|skypeuripreview|pinterest|embedly|quora|outbrain|vkshare|w3c_validator|chatgpt|claudebot|googleother|bingpreview|applebot|yandex/.test(ua);
+  }
+
   // Magic-Link & Cookie-Check als onRequest-Gate
   app.addHook("onRequest", async (req, reply) => {
     if (isPublic(req.url)) return;
+
+    // Bot-Linkvorschau-Anfrage: direkt mit OG-getaggter Login-Seite antworten,
+    // kein Redirect, kein Cookie. Scraper sehen so die Vorschau-Metadaten.
+    if (isBot(req) && req.method === "GET") {
+      reply.type("text/html").send(LOGIN_PAGE());
+      return reply;
+    }
 
     // Magic-Link: ?k=<token>
     const k =
