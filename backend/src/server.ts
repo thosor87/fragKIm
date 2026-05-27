@@ -110,9 +110,12 @@ export async function buildApp(): Promise<FastifyInstance> {
       reply.code(503);
       return { error: "Vorlesen ist nicht konfiguriert (ELEVENLABS_API_KEY fehlt)." };
     }
-    // Marker-Label nicht mitsprechen (auch in Kombi-Antworten, wo es mitten
-    // im Text an einem Zeilenanfang steht).
-    const speakable = text.replace(/^\s*allgemeinwissen\s*:\s*/gim, "");
+    // Marker-Label nicht mitsprechen: das Präfix "Allgemeinwissen:" reiner
+    // Allgemeinwissen-Antworten sowie der Klammerzusatz "(Allgemeinwissen)"
+    // im Kombi-Intro ("Schon gewusst (Allgemeinwissen)?" → "Schon gewusst?").
+    const speakable = text
+      .replace(/^\s*allgemeinwissen\s*:\s*/gim, "")
+      .replace(/\s*\(allgemeinwissen\)\s*/gi, " ");
     try {
       const url = `https://api.elevenlabs.io/v1/text-to-speech/${config.elevenLabsVoiceId}`;
       const r = await fetch(url, {

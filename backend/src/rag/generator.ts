@@ -12,7 +12,8 @@ export type GenerateResult = {
   hasSupplement?: boolean;
 };
 
-// Marker-Label pro Sprache (Praefix "Allgemeinwissen").
+// Marker-Label pro Sprache (Praefix "Allgemeinwissen") für reine
+// Allgemeinwissen-Antworten.
 const GENERAL_MARKER: Record<string, string> = {
   de: "Allgemeinwissen",
   en: "General knowledge",
@@ -20,6 +21,17 @@ const GENERAL_MARKER: Record<string, string> = {
   ru: "Общие знания",
   uk: "Загальні знання",
   ar: "معرفة عامة",
+};
+
+// Einleitung der Ergänzung in einer Kombi-Antwort (verspielt, aber mit
+// klarem Allgemeinwissen-Hinweis). Steht NACH dem Quell-Kern.
+const SUPPLEMENT_INTRO: Record<string, string> = {
+  de: "Schon gewusst (Allgemeinwissen)?",
+  en: "Did you know (general knowledge)?",
+  tr: "Biliyor muydun (genel bilgi)?",
+  ru: "А ты знал (общие знания)?",
+  uk: "А ти знав (загальні знання)?",
+  ar: "هل تعلم (معرفة عامة)؟",
 };
 
 // Sprach-Code → Klartext-Name für die Uebersetzungs-Anweisung.
@@ -46,7 +58,7 @@ Wichtige Unterscheidung: Auszüge können zwar zum **Thema** der Frage gehören 
 
 Reihenfolge der Quellen:
 1. Stütze dich IMMER zuerst auf die mitgelieferten Auszüge. Lies sie gründlich, die gesuchte Angabe steht oft mitten im längeren Text. Wenn ein Auszug zum Thema der Frage vorhanden ist und die Frage beantwortet (auch teilweise), NUTZE ihn: übernimm seine konkreten Angaben und Zahlen, auch wenn du es anders zu wissen glaubst. Antworte direkt, ohne Präfix und ohne Quellenangabe im Text. Das ist der Normalfall; die Quelle wird automatisch unter der Antwort angezeigt. (Beispiel: Steht im Auszug "Bis zu 93 Stundenkilometer wird er schnell", dann nenne 93, nicht eine andere Zahl aus deinem eigenen Wissen.)
-   Kombi-Antwort (gern genutzt, macht die Antwort lebendiger): Wenn du aus einem Auszug geantwortet hast und noch eine kurze, kindgerechte Ergänzung aus gesichertem Allgemeinwissen kennst, die NICHT im Auszug steht, darfst du sie anhängen. Schreibe dazu nach dem Quell-Teil eine eigene Zeile mit NUR "+++" und danach die Ergänzung (1-2 Sätze). Vor "+++" steht ausschließlich, was aus dem Auszug stammt; nach "+++" deine Ergänzung. Lass "+++" und die Ergänzung weg, wenn du nichts wirklich Passendes hinzuzufügen hast. Beispiel:\nEin Gepard wird bis zu 93 Stundenkilometer schnell.\n+++\nDamit ist er das schnellste Landtier der Welt, diese Geschwindigkeit hält er aber nur kurz durch.
+   Kombi-Antwort (sparsam einsetzen): Wenn du aus einem Auszug geantwortet hast und noch eine WIRKLICH interessante, kindgerechte Zusatzinfo aus gesichertem Allgemeinwissen kennst, die einen echten Mehrwert bietet und NICHT im Auszug steht, darfst du sie anhängen. Schreibe dazu nach dem Quell-Teil eine eigene Zeile mit NUR "+++" und danach die Ergänzung (1-2 Sätze). Vor "+++" steht ausschließlich, was aus dem Auszug stammt; nach "+++" deine Ergänzung. Im Zweifel WEGLASSEN: Wenn die Quell-Antwort schon vollständig ist oder dir nur Belangloses oder eine Wiederholung einfällt, lass "+++" und die Ergänzung weg. Lieber keine Ergänzung als eine aufgesetzte. Beispiel:\nEin Gepard wird bis zu 93 Stundenkilometer schnell.\n+++\nDamit ist er das schnellste Landtier der Welt, diese Geschwindigkeit hält er aber nur kurz durch.
 2. Den Marker "Allgemeinwissen: " verwendest du NUR dann, wenn die Auszüge die konkrete Frage nicht enthalten (Beispiel: der Vulkan-Artikel behandelt zwar Vulkane, sagt aber nichts darüber, ob man darin schwimmen kann) ODER wenn gar keine Auszüge vorhanden sind. Dann darfst du gesichertes Allgemeinwissen nutzen, großzügig: alles, was in einem typischen Kinderlexikon stehen würde, ist erlaubt. Beispiele:
    - Naturwissenschaft, Physik, Biologie, Chemie ("Warum ist der Himmel blau?", "Wie heiß ist Lava?", "Kann man in einem Vulkan schwimmen?")
    - Geografie, Hauptstädte, Tiere, Pflanzen, Klima
@@ -277,8 +289,9 @@ async function finalizeAnswer(
     if (grounded && supplement) {
       const g = await tr(grounded);
       const s = await tr(supplement);
+      const intro = SUPPLEMENT_INTRO[lang] ?? SUPPLEMENT_INTRO.de;
       return {
-        text: `${g}\n\n${markerLabel}: ${s}`,
+        text: `${g}\n\n${intro} ${s}`,
         noAnswer: false,
         fromGeneralKnowledge: false, // Kern ist gegroundet → Quelle anzeigen
         hasSupplement: true,
