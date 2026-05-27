@@ -161,7 +161,8 @@ const IMPRESSUM_BODY = `
 
   <h2>Urheberrecht</h2>
   <p>
-    Der Quellcode der Anwendung steht unter MIT-Lizenz (siehe Repository).
+    Der Quellcode der Anwendung steht unter CC BY-NC-SA 4.0 (siehe Repository):
+    keine kommerzielle Nutzung, Weitergabe von Änderungen unter derselben Lizenz.
     Die zitierten Sachtexte stehen unter CC BY-SA 4.0 ihrer Original-Quellen.
     Die Marke „frag KIm" und das Lampen-Logo sind freie eigene Schöpfung
     für diesen PoC.
