@@ -8,10 +8,18 @@ updates:
     labels:
       - "dependencies"
     groups:
+      fastify:
+        applies-to: version-updates
+        patterns:
+          - "fastify"
+          - "@fastify/*"
       security:
         applies-to: security-updates
         patterns:
           - "*"
+        exclude-patterns:
+          - "fastify"
+          - "@fastify/*"
       production:
         applies-to: version-updates
         dependency-type: "production"
