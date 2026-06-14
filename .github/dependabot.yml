@@ -29,6 +29,35 @@ updates:
       development:
         applies-to: version-updates
         dependency-type: "development"
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      fastify:
+        applies-to: version-updates
+        patterns:
+          - "fastify"
+          - "@fastify/*"
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "fastify"
+          - "@fastify/*"
+      production:
+        applies-to: version-updates
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      development:
+        applies-to: version-updates
+        dependency-type: "development"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
