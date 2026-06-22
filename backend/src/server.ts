@@ -5,6 +5,7 @@ import formbody from "@fastify/formbody";
 import multipart from "@fastify/multipart";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
 import { config } from "./config.js";
 import { ask, type ChatTurn, type SourceFlags, DEFAULT_SOURCES } from "./rag/pipeline.js";
 import { registerAuth } from "./auth.js";
@@ -36,7 +37,33 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(formbody);
   await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024 } });
 
-  app.get("/healthz", async () => ({ ok: true }));
+  app.get("/healthz", async (_req, reply) => {
+    // Prueft nicht nur, dass die Function bootet, sondern dass der
+    // Frontend-Build tatsaechlich auslieferbar ist: index.html vorhanden UND
+    // das darin referenzierte gehashte JS-Asset existiert. Faengt kaputte/
+    // unvollstaendige Builds ab, die der Server sonst still als SPA-HTML
+    // "ok" ausliefern wuerde (z.B. Dependabot-Bundle-Bruch).
+    try {
+      const indexHtml = readFileSync(
+        path.join(frontendDist, "index.html"),
+        "utf8",
+      );
+      const m = indexHtml.match(/\/assets\/[A-Za-z0-9._-]+\.js/);
+      if (!m) {
+        reply.code(503);
+        return { ok: false, reason: "frontend-index-no-asset" };
+      }
+      const assetRel = m[0].replace(/^\//, "");
+      if (!existsSync(path.join(frontendDist, assetRel))) {
+        reply.code(503);
+        return { ok: false, reason: "frontend-asset-missing" };
+      }
+      return { ok: true };
+    } catch {
+      reply.code(503);
+      return { ok: false, reason: "frontend-index-missing" };
+    }
+  });
   app.get("/robots.txt", async (_req, reply) => {
     reply.type("text/plain");
     return "User-agent: *\nDisallow: /\n";
@@ -194,9 +221,32 @@ export async function buildApp(): Promise<FastifyInstance> {
     root: frontendDist,
     prefix: "/",
     index: ["index.html"],
+    // Eigene Cache-Logik: sonst ueberschreibt der Plugin-Default
+    // (public, max-age=0) unsere Header in setHeaders.
+    cacheControl: false,
+    setHeaders(res, filePath) {
+      if (filePath.endsWith(".html")) {
+        // Die App-Shell nie langlebig cachen. Sonst zeigt ein alter Tab nach
+        // einem Deploy weiter auf laengst geloeschte gehashte Assets und
+        // crasht beim Nachladen (MIME-/White-Screen).
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        // Gehashte Assets sind unveraenderlich, dauerhaft cachebar.
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+    },
   });
 
-  app.setNotFoundHandler((_req, reply) => {
+  app.setNotFoundHandler((req, reply) => {
+    // Asset-artige Pfade (mit Datei-Endung) NICHT auf index.html mappen: ein
+    // veralteter Tab, der ein geloeschtes gehashtes Asset anfordert, soll ein
+    // echtes 404 bekommen, nicht HTML mit falschem MIME-Typ (das den Browser-
+    // Modullader crasht). Nur echte SPA-Routen bekommen die Shell.
+    const pathOnly = req.url.split("?")[0];
+    if (/\.[a-z0-9]+$/i.test(pathOnly)) {
+      reply.code(404).type("text/plain").send("Not found");
+      return;
+    }
     reply.type("text/html").sendFile("index.html");
   });
 

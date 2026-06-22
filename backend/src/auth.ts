@@ -246,6 +246,15 @@ export function registerAuth(app: FastifyInstance): void {
       reply.code(401);
       return { error: "Bitte zuerst einloggen." };
     }
+    // Asset-artige Pfade (gehashtes JS/CSS, Bilder etc.): kein Login-HTML
+    // zurueckgeben. Sonst laedt ein Browser HTML als JS-Modul → MIME-Crash.
+    // Echtes 404, damit ein veralteter ausgeloggter Tab sauber scheitert
+    // statt einen weissen Bildschirm zu zeigen.
+    const pathOnly = req.url.split("?")[0];
+    if (/\.[a-z0-9]+$/i.test(pathOnly)) {
+      reply.code(404).type("text/plain").send("Not found");
+      return reply;
+    }
     // Browser-Navigation → Login-Seite mit Status 200, damit Linkvorschau-
     // Scraper (Slack, WhatsApp, Mail-Clients) die OG-Tags lesen. Die
     // eigentlichen Inhalte sind ja durch die API-Auth geschuetzt.
