@@ -147,17 +147,19 @@ Monorepo mit npm-Workspaces (`backend`, `frontend`).
 │   │   ├── legal-pages.ts       Impressum + Datenschutz (serverseitig gerendert)
 │   │   ├── archive-viewer.ts    HTML-Ansicht der archivierten Grundschulwiki-Artikel
 │   │   └── rag/
-│   │       ├── pipeline.ts          Orchestrierung: Filter → Moderation → Retrieval → Generierung
+│   │       ├── pipeline.ts          Orchestrierung: Filter → Moderation → Retrieval → Relevanz-Gate → Generierung
 │   │       ├── rewrite.ts           Folgefrage → eigenständige Suchanfrage
 │   │       ├── retrieval-online.ts  MediaWiki-Suche (Klexikon, Grundschulwiki live)
 │   │       ├── retrieval-archive.ts Grundschulwiki aus dem GitHub-Archiv
+│   │       ├── relevance.ts         Relevanz-Gate: verwirft themenfremde Auszüge (Mistral)
+│   │       ├── image-safety.ts      deterministischer Bild-Filter (Dokument-Scans, Gewaltmotive)
 │   │       ├── generator.ts         Mistral-Generierung, Grounding, Kombi-Antwort, Übersetzung
 │   │       ├── moderation.ts        Input- und Output-Moderation (Mistral)
 │   │       ├── wikitext.ts          Wikitext → Text/HTML (für den Archive-Viewer)
 │   │       ├── embeddings.ts        lokale Embeddings (nur bei RETRIEVAL_PROVIDER=local)
 │   │       ├── qdrant.ts            Qdrant-Anbindung (nur lokal)
 │   │       └── judge.ts             optionaler Faktenchecker (derzeit deaktiviert)
-│   └── test/                    Vitest: filters, moderation, responses + fixtures
+│   └── test/                    Vitest: filters, moderation, responses, relevance, image-safety + fixtures
 ├── frontend/
 │   └── src/
 │       ├── App.tsx              komplette Chat-UI
@@ -293,10 +295,13 @@ Frage des Kindes
    ├─ 4. Retrieval (retrieval-online.ts / -archive.ts)
    │      Klexikon (Live-MediaWiki-API) + Grundschulwiki (GitHub-Archiv)
    │
-   ├─ 5. Generierung (generator.ts)
+   ├─ 5. Relevanz-Gate (relevance.ts)
+   │      verwirft thematisch fremde Auszüge vor Quelle/Bild/Generierung
+   │
+   ├─ 6. Generierung (generator.ts)
    │      Mistral mit hartem System-Prompt, gegroundet auf die Auszüge
    │
-   ├─ 6. Output-Moderation (bei Allgemeinwissen-Anteilen)
+   ├─ 7. Output-Moderation (bei Allgemeinwissen-Anteilen)
    │
    └─ Antwort + Quellenangabe (oder Eskalation / Hinweis)
 ```
@@ -313,7 +318,18 @@ problematisch werden kann.
 gewichtet und ineinander gefächert. Findet die Suche nichts, greifen
 Fallbacks: Stoppwörter entfernen, dann Einzelwort-Suche. Der Artikel-HTML wird
 zu sauberem Text reduziert (bis ~6000 Zeichen Kontext); das erste sinnvolle
-Bild wird für die Anzeige neben der Antwort extrahiert.
+Bild wird für die Anzeige neben der Antwort extrahiert. Ein deterministischer
+Bild-Filter ([`image-safety.ts`](./backend/src/rag/image-safety.ts)) hält dabei
+Dokument-Scans und Gewalt-/Fahndungsmotive grundsätzlich heraus.
+
+**Relevanz-Gate.** Die Einzelwort-Fallbacks erhöhen die Trefferquote, ziehen
+aber thematisch fremde Artikel an sich (z.B. „Steckbrief" als Polizei-Fahndung
+bei einer Tierfrage). Vor Generierung, Quellen- und Bildauswahl prüft deshalb
+ein Mistral-Call ([`relevance.ts`](./backend/src/rag/relevance.ts)), welche
+Auszüge wirklich zur Frage gehören, und verwirft den Rest. Bleibt nichts übrig,
+greift sauber das „Weiß ich nicht" bzw. die markierte Allgemeinwissen-Antwort.
+Fällt der Call aus, werden die Treffer behalten (fail-open); der Bild-Filter
+greift davon unabhängig weiter.
 
 **Generierung und Grounding.** Das Sprachmodell (`mistral-small-latest`, EU)
 bekommt die Auszüge plus einen harten System-Prompt. Die Quellen-Logik

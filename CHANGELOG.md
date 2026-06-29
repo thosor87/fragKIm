@@ -4,6 +4,33 @@ Alle nennenswerten Änderungen an frag KIm. Format angelehnt an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.5.0] – 2026-06-29
+
+### Behoben
+- **Kein Fahndungsplakat mehr bei „Steckbrief Tiger" (Kinderschutz).** Bei
+  mehrwörtigen Fragen ohne Phrasen-Treffer zerlegt das Retrieval die Frage in
+  Einzelwörter und merged deren Treffer. So zog „Steckbrief Tiger" neben dem
+  Tier-Artikel auch den Klexikon-Artikel „Steckbrief" (Polizei-Fahndung)
+  herein, dessen erstes Bild ein Fahndungsplakat („Mord an Polizeibeamten")
+  ist. Bild und Quelle wurden unabhängig von der Relevanz angehängt.
+- **Themenfremde Bilder ohne Bezug** (z.B. Brandenburger Tor bei „Josef und
+  seine Brüder"): dasselbe Muster, irrelevanter Treffer samt Zufallsbild.
+
+### Hinzugefügt
+- **Relevanz-Gate** ([`relevance.ts`](./backend/src/rag/relevance.ts)): Ein
+  EU-Modell-Call (Mistral) prüft nach dem Retrieval, welche Auszüge thematisch
+  zur Frage passen, und verwirft den Rest **vor** Generierung, Quellen- und
+  Bildauswahl. Bleibt nichts Passendes übrig, greift sauber das „Weiß ich
+  nicht" bzw. die klar markierte Allgemeinwissen-Antwort. Fail-open bei
+  Modellfehler, damit das Produkt nicht hängt.
+- **Bild-Sicherheitsfilter** ([`image-safety.ts`](./backend/src/rag/image-safety.ts)):
+  deterministisch und ohne LLM. Dokument-Scans (`.pdf.jpg`), gerenderte
+  Mehrseiten-Dokumente (`pageN-`) sowie Gewalt-/Fahndungs-Dateinamen werden nie
+  als Bild angehängt. Greift immer, auch wenn das Relevanz-Gate ausfällt.
+- **Bildunterschrift** unter dem Antwort-Bild („Bild aus dem Artikel ‚…'",
+  mehrsprachig), damit das Bild eingeordnet ist. Das Bild stammt jetzt aus der
+  relevantesten Quelle statt aus „irgendeiner mit Bild".
+
 ## [0.4.0] – 2026-05-27
 
 ### Hinzugefügt
