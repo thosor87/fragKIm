@@ -386,14 +386,26 @@ export function App() {
                 }
               >
                 {(() => {
-                  const withImg = m.sources.find((s) => s.imageUrl);
+                  // Bild bevorzugt aus der relevantesten Quelle (sources[0]
+                  // nach dem Relevanz-Gate). Nur wenn die oberen keins haben,
+                  // auf die naechste Quelle mit Bild ausweichen.
+                  const withImg =
+                    m.sources[0]?.imageUrl != null
+                      ? m.sources[0]
+                      : m.sources.find((s) => s.imageUrl);
                   return withImg?.imageUrl ? (
-                    <img
-                      className="bubble-image"
-                      src={withImg.imageUrl}
-                      alt={withImg.title}
-                      loading="lazy"
-                    />
+                    <figure className="bubble-figure">
+                      <img
+                        className="bubble-image"
+                        src={withImg.imageUrl}
+                        alt={withImg.title}
+                        loading="lazy"
+                        draggable={false}
+                      />
+                      <figcaption className="bubble-figcaption">
+                        {t("imageCaption", { title: withImg.title })}
+                      </figcaption>
+                    </figure>
                   ) : null;
                 })()}
                 <div className="bubble-body">{m.text}</div>

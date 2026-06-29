@@ -10,6 +10,7 @@
 
 import type { Hit, KlexikonPayload, WikiSourceId } from "./qdrant.js";
 import { config } from "../config.js";
+import { isSafeArticleImage } from "./image-safety.js";
 import {
   archiveEnabled,
   searchGrundschulwikiArchive,
@@ -119,6 +120,8 @@ function extractFirstImage(html: string, baseOrigin: string): string | undefined
   let url = m[1];
   if (url.startsWith("//")) url = "https:" + url;
   else if (url.startsWith("/")) url = baseOrigin + url;
+  // Kinderschutz: Dokument-Scans/Fahndungsplakate u.ä. nie als Bild anhängen.
+  if (!isSafeArticleImage(url)) return undefined;
   return url;
 }
 
