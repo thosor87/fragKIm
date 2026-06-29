@@ -226,14 +226,24 @@ body { overscroll-behavior-y: contain; }
 
 .bubble-body { white-space: pre-wrap; }
 
+.bubble-figure {
+  margin: 0 0 12px;
+}
+
 .bubble-image {
   display: block;
   width: 100%;
   max-width: 320px;
   height: auto;
   border-radius: 12px;
-  margin-bottom: 12px;
   background: var(--bg);
+}
+
+.bubble-figcaption {
+  margin-top: 6px;
+  max-width: 320px;
+  font-size: 0.8rem;
+  color: var(--muted, #6b6f76);
 }
 
 .bubble-actions {

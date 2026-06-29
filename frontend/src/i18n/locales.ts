@@ -47,6 +47,7 @@ export const resources = {
       languageLabel: "Sprache",
       skipToContent: "Zum Inhalt springen",
       loading: "Antwort wird geladen …",
+      imageCaption: "Bild aus dem Artikel „{{title}}“",
     },
   },
   en: {
@@ -82,6 +83,7 @@ export const resources = {
       languageLabel: "Language",
       skipToContent: "Skip to content",
       loading: "Loading answer …",
+      imageCaption: "Image from the article “{{title}}”",
     },
   },
   tr: {
@@ -117,6 +119,7 @@ export const resources = {
       languageLabel: "Dil",
       skipToContent: "İçeriğe geç",
       loading: "Yanıt yükleniyor …",
+      imageCaption: "“{{title}}” makalesinden görsel",
     },
   },
   ru: {
@@ -152,6 +155,7 @@ export const resources = {
       languageLabel: "Язык",
       skipToContent: "Перейти к содержимому",
       loading: "Загрузка ответа …",
+      imageCaption: "Изображение из статьи «{{title}}»",
     },
   },
   uk: {
@@ -187,6 +191,7 @@ export const resources = {
       languageLabel: "Мова",
       skipToContent: "Перейти до вмісту",
       loading: "Завантаження відповіді …",
+      imageCaption: "Зображення зі статті «{{title}}»",
     },
   },
   ar: {
@@ -222,6 +227,7 @@ export const resources = {
       languageLabel: "اللغة",
       skipToContent: "تخطَّ إلى المحتوى",
       loading: "جارٍ تحميل الإجابة …",
+      imageCaption: "صورة من مقال «{{title}}»",
     },
   },
 } as const;

@@ -2,6 +2,7 @@ import { config } from "../config.js";
 import { embed } from "./embeddings.js";
 import { searchChunks, type Hit } from "./qdrant.js";
 import { searchOnline } from "./retrieval-online.js";
+import { filterRelevantHits } from "./relevance.js";
 import type { WikiSourceId } from "./qdrant.js";
 
 export type SourceFlags = {
@@ -182,7 +183,10 @@ export async function ask(
     };
   }
   // 2. Retrieval mit der eigenständigen Frage (nur in aktivierten Wikis)
-  const hits = await retrieve(retrievalQuery, sources);
+  const retrieved = await retrieve(retrievalQuery, sources);
+  // 2b. Relevanz-Gate: thematisch fremde Auszüge (z.B. "Steckbrief"=Fahndung
+  // bei einer Tierfrage) raus, BEVOR sie Quelle/Bild/Generierung beeinflussen.
+  const hits = await filterRelevantHits(retrievalQuery, retrieved);
   const minScore = config.retrievalProvider === "online" ? MIN_ONLINE_SCORE : MIN_LOCAL_SCORE;
   const strong = hits.filter((h) => h.score >= minScore);
 
