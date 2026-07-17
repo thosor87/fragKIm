@@ -6,7 +6,7 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 60,
-      "includeFiles": "{backend/dist/**,frontend/dist/**}",
+      "includeFiles": "{backend/dist/**,backend/package.json,frontend/dist/**}",
       "excludeFiles": "{**/node_modules/@huggingface/**,**/node_modules/@qdrant/**,**/node_modules/onnxruntime-*/**,**/node_modules/sharp/**,**/.onnx,**/*.onnx}"
     }
   },
