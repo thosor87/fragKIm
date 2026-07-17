@@ -229,10 +229,10 @@ export async function buildApp(): Promise<FastifyInstance> {
         // Die App-Shell nie langlebig cachen. Sonst zeigt ein alter Tab nach
         // einem Deploy weiter auf laengst geloeschte gehashte Assets und
         // crasht beim Nachladen (MIME-/White-Screen).
-        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+        res.header("Cache-Control", "no-cache, must-revalidate");
       } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
         // Gehashte Assets sind unveraenderlich, dauerhaft cachebar.
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.header("Cache-Control", "public, max-age=31536000, immutable");
       }
     },
   });
