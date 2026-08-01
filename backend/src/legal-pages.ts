@@ -111,6 +111,9 @@ const IMPRESSUM_BODY = `
     Quellcode: <a href="https://github.com/thosor87/fragKIm" target="_blank" rel="noopener noreferrer">github.com/thosor87/fragKIm</a>
   </p>
 
+  <h2>Umsatzsteuer</h2>
+  <p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: DE463919668</p>
+
   <h2>Zweck dieser Anwendung</h2>
   <p>
     <strong>frag KIm</strong> ist ein Proof of Concept (PoC) für eine kindersichere
