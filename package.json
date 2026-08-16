@@ -18,7 +18,7 @@
     "qdrant:down": "docker compose down"
   },
   "devDependencies": {
-    "tsx": "^4.23.9",
+    "tsx": "^4.23.12",
     "typescript": "^6.0.3"
   },
   "overrides": {
