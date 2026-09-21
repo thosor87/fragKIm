@@ -4,6 +4,27 @@ Alle nennenswerten Änderungen an frag KIm. Format angelehnt an
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Behoben
+- **Production-Ausfall durch ESM-only-Transitive.** `@fastify/static` 10.1.4
+  (Security-Fix für CVE-2026-90982) zieht `content-disposition` ^3.0.0 mit,
+  und dieses Paket ist seit 3.0.0 ESM-only. Da `@fastify/static` CommonJS ist
+  und `require()` nutzt, starb die Vercel-Function beim Import mit
+  `ERR_REQUIRE_ESM` — jeder Request, auch `/healthz`, lief auf HTTP 500.
+  Lokal und in der CI fiel das nicht auf, weil Node seit 20.19/22.12
+  `require(esm)` unterstützt; Vercels Runtime-Loader tut das nicht.
+  `content-disposition` ist jetzt per `overrides` auf die letzte CJS-Version
+  2.0.1 gepinnt, der CVE-Fix bleibt drin. Details in
+  [`specs/2026-09-21-content-disposition-esm-hotfix.md`](./specs/2026-09-21-content-disposition-esm-hotfix.md).
+
+### Hinzugefügt
+- **Regressionstest gegen ESM-only-Transitive**
+  ([`cjs-esm-interop.test.ts`](./backend/test/cjs-esm-interop.test.ts)): prüft
+  die Dependency-Kette der registrierten Fastify-Plugins darauf, dass kein
+  CJS-Paket ein ESM-only-Paket per `require()` lädt. Dynamische `import()`
+  wie bei `@fastify/cookie` gelten korrekt nicht als Verstoß.
+
 ## [0.5.0] – 2026-06-29
 
 ### Behoben
@@ -34,7 +55,7 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
 ## [0.4.0] – 2026-05-27
 
 ### Hinzugefügt
-- **Eltern-/Lehrkräfte-Seite** unter `/ueber`, öffentlich (ohne Login) und
+- **Eltern-/Lehrkräfte-Seite** unter `/über`, öffentlich (ohne Login) und
   **mehrsprachig** (de/en/tr/ru/uk/ar, RTL für Arabisch): erklärt, was frag
   KIm macht, was es bewusst nicht macht (Companion-Abgrenzung, keine
   Überwachung, kein Speichern), wie die Sicherheit funktioniert und was mit
