@@ -12,7 +12,9 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
   fehl (Timeout, HTTP-Fehler, z. B. beim auslaufenden Grundschulwiki-Live-API),
   brach die ganze Frage mit HTTP 500 ab. Jetzt zählt jede Quelle einzeln
   (`Promise.allSettled`); die übrigen Quellen bzw. das Allgemeinwissen
-  antworten weiter.
+  antworten weiter. Zusätzlich ist das Grundschulwiki-Archiv jetzt der
+  Default (vorher nur mit gesetztem `GRUNDSCHULWIKI_ARCHIVE_URL`); ohne die
+  Variable lief jede Frage gegen die nicht mehr erreichbare Original-API.
 - **Production-Ausfall durch ESM-only-Transitive.** `@fastify/static` 10.1.4
   (Security-Fix für CVE-2026-90982) zieht `content-disposition` ^3.0.0 mit,
   und dieses Paket ist seit 3.0.0 ESM-only. Da `@fastify/static` CommonJS ist

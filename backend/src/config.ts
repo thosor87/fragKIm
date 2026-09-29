@@ -40,7 +40,11 @@ export const config = {
 
   crawlerContact: process.env.CRAWLER_CONTACT ?? "anonymous",
 
-  grundschulwikiArchiveUrl: process.env.GRUNDSCHULWIKI_ARCHIVE_URL ?? "",
+  // Default: GitHub-Archiv, weil das Original-Wiki abgeschaltet wird bzw. schon
+  // nicht mehr erreichbar ist. "off" schaltet zurück auf die Live-API.
+  grundschulwikiArchiveUrl:
+    process.env.GRUNDSCHULWIKI_ARCHIVE_URL ??
+    "https://raw.githubusercontent.com/thosor87/grundschulwiki-archiv/main/data",
 
   ollamaUrl: process.env.OLLAMA_URL ?? "http://localhost:11434",
   ollamaModel: process.env.OLLAMA_MODEL ?? "qwen2.5:7b",
