@@ -248,10 +248,12 @@ async function searchOneSource(
         .filter((w) => w.length > 2)
         .sort((a, b) => b.length - a.length)
         .slice(0, 4);
-      const perWord = await Promise.all(
+      const perWord = await Promise.allSettled(
         words.map((w) => rawSearch(source, w)),
       );
-      items = uniqByTitle(perWord.flat()).slice(0, MAX_HITS_PER_SOURCE);
+      items = uniqByTitle(
+        perWord.flatMap((r) => (r.status === "fulfilled" ? r.value : [])),
+      ).slice(0, MAX_HITS_PER_SOURCE);
     }
   }
   if (items.length === 0) return [];
@@ -297,9 +299,16 @@ export async function searchOnline(
   sourceIds: WikiSourceId[] = ["klexikon", "grundschulwiki"],
 ): Promise<Hit[]> {
   if (sourceIds.length === 0) return [];
-  const results = await Promise.all(
+  // Ausfall einer einzelnen Quelle (Timeout, HTTP-Fehler) darf nicht die ganze
+  // Frage scheitern lassen: die übrigen Quellen liefern weiter.
+  const settled = await Promise.allSettled(
     sourceIds.map((id) => searchOneSourceOrArchive(id, query)),
   );
+  const results = settled.map((r, i) => {
+    if (r.status === "fulfilled") return r.value;
+    console.warn(`[retrieval] Quelle ${sourceIds[i]} nicht erreichbar:`, r.reason);
+    return [] as Hit[];
+  });
   // Hits ineinanderfächern: erst Klexikon-Top, dann Grundschulwiki-Top usw.,
   // bis MAX erreicht.
   const merged: Hit[] = [];

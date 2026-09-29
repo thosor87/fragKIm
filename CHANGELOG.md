@@ -7,6 +7,12 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
 ## [Unreleased]
 
 ### Behoben
+- **„Etwas ist schiefgegangen" bei einzelnen Quellenausfällen.** Das
+  Online-Retrieval nutzte `Promise.all`: Schlug die Abfrage einer Wiki-Quelle
+  fehl (Timeout, HTTP-Fehler, z. B. beim auslaufenden Grundschulwiki-Live-API),
+  brach die ganze Frage mit HTTP 500 ab. Jetzt zählt jede Quelle einzeln
+  (`Promise.allSettled`); die übrigen Quellen bzw. das Allgemeinwissen
+  antworten weiter.
 - **Production-Ausfall durch ESM-only-Transitive.** `@fastify/static` 10.1.4
   (Security-Fix für CVE-2026-90982) zieht `content-disposition` ^3.0.0 mit,
   und dieses Paket ist seit 3.0.0 ESM-only. Da `@fastify/static` CommonJS ist
