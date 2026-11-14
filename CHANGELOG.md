@@ -15,7 +15,7 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
 
 ### Behoben
 - **Mistral-Modellnamen per Env setzbar** (`MISTRAL_CHAT_MODEL`,
-  `MISTRAL_MODERATION_MODEL`, Default unverändert `-latest`). Der Alias
+  `MISTRAL_MODERATION_MODEL`; Default Chat jetzt exakt `mistral-small-2603`). Der Alias
   `mistral-small-latest` kann auf ein Modell zeigen, für das ein Konto kein
   Limit hat und deshalb dauerhaft 429 bekommt; dann den exakten Namen aus dem
   Dashboard (z. B. `mistral-small-2603`) eintragen.
