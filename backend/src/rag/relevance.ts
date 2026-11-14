@@ -14,6 +14,7 @@
 // Im Sinne der Architektur-Leitplanke "Quelle vor Generierung": lieber eine
 // ehrliche Lücke als eine Antwort mit thematisch fremder Quelle/Bild.
 
+import { mistralCall } from "./mistral-throttle.js";
 import { config } from "../config.js";
 import type { Hit } from "./qdrant.js";
 
@@ -70,7 +71,7 @@ export async function filterRelevantHits(
   const userPrompt = `Frage des Kindes: "${question}"\n\nAuszüge:\n${excerpts}\n\nWelche Auszüge passen thematisch zur Frage? Nummern kommagetrennt oder "KEINE".`;
 
   try {
-    const res = await mistralClient.chat.complete({
+    const res = await mistralCall(() => mistralClient!.chat.complete({
       model: "mistral-small-latest",
       temperature: 0,
       maxTokens: 20,
@@ -78,7 +79,7 @@ export async function filterRelevantHits(
         { role: "system", content: RELEVANCE_PROMPT },
         { role: "user", content: userPrompt },
       ],
-    });
+    }));
     const content = res.choices?.[0]?.message?.content;
     if (typeof content !== "string") return hits;
     const indices = parseRelevantIndices(content, hits.length);

@@ -14,6 +14,12 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
   einmal, statt sofort „Etwas ist schiefgegangen" zu zeigen.
 
 ### Behoben
+- **Prod: „Etwas ist schiefgegangen" durch Mistral-Rate-Limit (HTTP 429).**
+  Eine Frage löst mehrere Mistral-Aufrufe aus; kleine Tarife erlauben nur ca.
+  1 Anfrage/s. Neues Modul `rag/mistral-throttle.ts`: Mindestabstand zwischen
+  allen Mistral-Aufrufen (`MISTRAL_MIN_INTERVAL_MS`, Default 1100) und
+  Backoff-Retry bei 429/5xx (`MISTRAL_MAX_RETRIES`, Default 3). Der Generator
+  akzeptiert außerdem `content` als Teilstück-Liste.
 - **„Etwas ist schiefgegangen" bei einzelnen Quellenausfällen.** Das
   Online-Retrieval nutzte `Promise.all`: Schlug die Abfrage einer Wiki-Quelle
   fehl (Timeout, HTTP-Fehler, z. B. beim auslaufenden Grundschulwiki-Live-API),

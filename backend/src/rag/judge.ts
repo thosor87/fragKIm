@@ -2,6 +2,7 @@
 // der die vorgeschlagene Antwort gegen die Auszüge prüft. Liefert er kein
 // klares "OK", wird die Antwort verworfen und durch "Weiß ich nicht" ersetzt.
 
+import { mistralCall } from "./mistral-throttle.js";
 import { config } from "../config.js";
 import type { Hit } from "./qdrant.js";
 
@@ -36,7 +37,7 @@ export async function judge(
   const userPrompt = `Auszüge:\n${excerpts}\n\nVorgeschlagene Antwort an das Kind:\n"${answer}"\n\nIst jede Tatsachenbehauptung durch die Auszüge gedeckt? Antworte exakt OK oder NICHT_OK.`;
 
   try {
-    const res = await mistralClient.chat.complete({
+    const res = await mistralCall(() => mistralClient!.chat.complete({
       model: "mistral-small-latest",
       temperature: 0,
       maxTokens: 20,
@@ -44,7 +45,7 @@ export async function judge(
         { role: "system", content: JUDGE_PROMPT },
         { role: "user", content: userPrompt },
       ],
-    });
+    }));
     const content = res.choices?.[0]?.message?.content;
     if (typeof content !== "string") return { ok: false };
     const verdict = content.trim().toUpperCase();
