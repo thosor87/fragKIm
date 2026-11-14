@@ -270,8 +270,27 @@ async function mistralGenerate(
     await new Promise((r) => setTimeout(r, 800));
     res = await client.chat.complete(request);
   }
-  const content = res.choices?.[0]?.message?.content;
-  if (typeof content !== "string") throw new Error("Unexpected chat response shape");
+  // Neuere Mistral-Modelle liefern `content` teils als Liste von Teilstücken
+  // ({type:"text", text}) statt als String; Denk-Teile (type "thinking")
+  // werden ignoriert.
+  const raw = res.choices?.[0]?.message?.content as unknown;
+  const content =
+    typeof raw === "string"
+      ? raw
+      : Array.isArray(raw)
+        ? raw
+            .map((c) =>
+              c && typeof c === "object" && (c as { type?: string }).type === "text"
+                ? String((c as { text?: string }).text ?? "")
+                : "",
+            )
+            .join("")
+        : null;
+  if (!content?.trim()) {
+    throw new Error(
+      `Unexpected chat response shape: ${JSON.stringify(raw)?.slice(0, 200)}`,
+    );
+  }
   const trimmed = content.trim();
   if (trimmed.includes("OFFTOPIC") || trimmed.includes("WEISS_ICH_NICHT")) {
     return noAnswer();
