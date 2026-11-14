@@ -41,6 +41,14 @@ html, body, #root {
   text-size-adjust: 100%;
 }
 html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(900px 420px at 85% -80px, rgba(255, 200, 87, 0.22), transparent 70%),
+    radial-gradient(800px 420px at 5% -60px, rgba(43, 179, 163, 0.16), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+#root { background: transparent; }
 body { overscroll-behavior-y: contain; }
 
 #root {
@@ -71,8 +79,18 @@ body { overscroll-behavior-y: contain; }
   margin: 0 auto;
 }
 .brand-inner { display: flex; align-items: center; gap: 12px; }
-.brand h1 { font-size: 26px; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
-.brand-mark { display: inline-flex; }
+.brand h1 { font-size: 30px; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(42, 45, 52, 0.08);
+}
 
 .reset {
   font: inherit;
@@ -166,6 +184,7 @@ body { overscroll-behavior-y: contain; }
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 .source-toggle.on {
+  box-shadow: 0 2px 8px rgba(25, 121, 107, 0.25);
   background: var(--btn);
   color: #fff;
   border-color: var(--btn);
@@ -187,9 +206,21 @@ body { overscroll-behavior-y: contain; }
 .hint {
   text-align: center;
   color: var(--muted);
-  padding: 32px 12px;
+  padding: 28px 20px;
+  margin: 16px 0 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: 0 8px 28px rgba(42, 45, 52, 0.06);
 }
-.hint em { color: var(--text); font-style: italic; }
+.hint em {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  background: #fff7e0;
+  border-radius: 999px;
+}
+.hint em { color: var(--text); font-style: normal; }
 
 .bubbles {
   list-style: none;
@@ -204,14 +235,15 @@ body { overscroll-behavior-y: contain; }
   display: flex;
   flex-direction: column;
   max-width: 88%;
-  border-radius: 18px;
-  padding: 12px 16px;
+  border-radius: 22px;
+  padding: 14px 18px;
   word-wrap: break-word;
+  box-shadow: 0 2px 10px rgba(42, 45, 52, 0.05);
 }
 
 .bubble.user {
   align-self: flex-end;
-  background: var(--user-bubble);
+  background: linear-gradient(135deg, #d6f3ee, #c4ece5);
   border-bottom-right-radius: 6px;
 }
 .bubble.assistant {
@@ -219,6 +251,7 @@ body { overscroll-behavior-y: contain; }
   background: var(--bot-bubble);
   border: 1px solid var(--border);
   border-bottom-left-radius: 6px;
+  box-shadow: 0 6px 20px rgba(42, 45, 52, 0.07);
 }
 .bubble.assistant.escalated { background: var(--escalated-bg); border-color: var(--accent); }
 .bubble.assistant.refused { background: var(--refused-bg); }
@@ -232,10 +265,11 @@ body { overscroll-behavior-y: contain; }
 
 .bubble-image {
   display: block;
+  box-shadow: 0 2px 8px rgba(42, 45, 52, 0.1);
   width: 100%;
   max-width: 320px;
   height: auto;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--bg);
 }
 
@@ -336,7 +370,9 @@ main:focus-visible { outline: none; }
 .composer {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  background: var(--bg);
+  background: rgba(251, 248, 243, 0.88);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
   padding: 12px 16px;
   padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
@@ -364,6 +400,7 @@ main:focus-visible { outline: none; }
   border-radius: 22px;
   border: 2px solid var(--border);
   background: var(--card);
+  box-shadow: 0 2px 10px rgba(42, 45, 52, 0.05);
   color: var(--text);
   resize: none;
   max-height: 160px;
@@ -417,7 +454,10 @@ main:focus-visible { outline: none; }
   color: #fff;
   cursor: pointer;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(25, 121, 107, 0.3);
+  transition: background 120ms ease, transform 120ms ease;
 }
+.composer .send-btn:active:not(:disabled) { transform: scale(0.97); }
 .composer .send-btn:hover:not(:disabled) { background: var(--btn-hover); }
 .composer .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
