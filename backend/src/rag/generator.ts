@@ -245,15 +245,31 @@ async function mistralGenerate(
   // Immer auf Deutsch generieren (zuverlaessig gegroundet), danach ggf.
   // uebersetzen. Das ist robuster als Mistral-small direkt mehrsprachig
   // antworten zu lassen.
-  const res = await mistralClient.chat.complete({
+  const client = mistralClient;
+  const request = {
     model: "mistral-small-latest",
     temperature: 0.2,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system" as const, content: SYSTEM_PROMPT },
       ...trimmedHistory,
-      { role: "user", content: buildUserPrompt(question, hits, allgemeinwissenAllowed) },
+      {
+        role: "user" as const,
+        content: buildUserPrompt(question, hits, allgemeinwissenAllowed),
+      },
     ],
-  });
+  };
+  // Kurzzeitige Ausfälle (Rate-Limit 429, 5xx, Netzwerk) einmal wiederholen,
+  // statt sofort „Etwas ist schiefgegangen" zu zeigen.
+  let res;
+  try {
+    res = await client.chat.complete(request);
+  } catch (err) {
+    const status = (err as { statusCode?: number }).statusCode;
+    const transient = status === undefined || status === 429 || status >= 500;
+    if (!transient) throw err;
+    await new Promise((r) => setTimeout(r, 800));
+    res = await client.chat.complete(request);
+  }
   const content = res.choices?.[0]?.message?.content;
   if (typeof content !== "string") throw new Error("Unexpected chat response shape");
   const trimmed = content.trim();

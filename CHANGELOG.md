@@ -6,6 +6,13 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Geändert
+- **Optische Überarbeitung:** sanfter Farbverlauf im Hintergrund, Logo im
+  runden Badge, Hinweis-Karte mit Beispiel-Fragen als Chips, weichere
+  Bubbles mit Schatten, Composer mit Blur. Farben und Kontraste unverändert.
+- Mistral-Generator wiederholt bei kurzzeitigen Fehlern (429/5xx/Netzwerk)
+  einmal, statt sofort „Etwas ist schiefgegangen" zu zeigen.
+
 ### Behoben
 - **„Etwas ist schiefgegangen" bei einzelnen Quellenausfällen.** Das
   Online-Retrieval nutzte `Promise.all`: Schlug die Abfrage einer Wiki-Quelle
