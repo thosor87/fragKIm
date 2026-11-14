@@ -11,6 +11,7 @@ import { ask, type ChatTurn, type SourceFlags, DEFAULT_SOURCES } from "./rag/pip
 import { registerAuth } from "./auth.js";
 import { registerArchiveViewer } from "./archive-viewer.js";
 import { registerLegalPages } from "./legal-pages.js";
+import { isRateLimited } from "./rag/mistral-throttle.js";
 import { makeRateLimiter } from "./rate-limit.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -120,6 +121,14 @@ export async function buildApp(): Promise<FastifyInstance> {
       return result;
     } catch (err) {
       app.log.error({ err }, "ask failed");
+      if (isRateLimited(err)) {
+        reply.code(429);
+        return {
+          code: "rate_limited",
+          error:
+            "Gerade sind zu viele Fragen unterwegs. Bitte versuche es in einer Minute noch einmal.",
+        };
+      }
       reply.code(500);
       return {
         error: "Etwas ist schiefgegangen. Bitte versuche es gleich noch einmal.",
