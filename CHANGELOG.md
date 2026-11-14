@@ -14,11 +14,16 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
   einmal, statt sofort „Etwas ist schiefgegangen" zu zeigen.
 
 ### Behoben
+- **Mistral-Rate-Limit ehrlich melden.** Bei anhaltendem 429 antwortet
+  `/api/ask` jetzt mit HTTP 429 und `code: "rate_limited"`; das Frontend zeigt
+  „Gerade sind zu viele Fragen unterwegs …" (6 Sprachen) statt „Etwas ist
+  schiefgegangen". Retries auf 1 Wiederholung reduziert (Default
+  `MISTRAL_MAX_RETRIES=1`), damit die Wartezeit nicht ~25 s beträgt.
 - **Prod: „Etwas ist schiefgegangen" durch Mistral-Rate-Limit (HTTP 429).**
   Eine Frage löst mehrere Mistral-Aufrufe aus; kleine Tarife erlauben nur ca.
   1 Anfrage/s. Neues Modul `rag/mistral-throttle.ts`: Mindestabstand zwischen
   allen Mistral-Aufrufen (`MISTRAL_MIN_INTERVAL_MS`, Default 1100) und
-  Backoff-Retry bei 429/5xx (`MISTRAL_MAX_RETRIES`, Default 3). Der Generator
+  Backoff-Retry bei 429/5xx (`MISTRAL_MAX_RETRIES`, Default 1). Der Generator
   akzeptiert außerdem `content` als Teilstück-Liste.
 - **„Etwas ist schiefgegangen" bei einzelnen Quellenausfällen.** Das
   Online-Retrieval nutzte `Promise.all`: Schlug die Abfrage einer Wiki-Quelle

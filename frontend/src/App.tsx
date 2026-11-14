@@ -269,7 +269,9 @@ export function App() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Etwas ging schief.");
+        throw new Error(
+          body.code === "rate_limited" ? t("errorBusy") : (body.error ?? "Etwas ging schief."),
+        );
       }
       const data = (await res.json()) as AskResponse;
       const botMsg: AssistantMessage = {

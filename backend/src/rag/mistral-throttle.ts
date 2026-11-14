@@ -7,7 +7,7 @@
 // Prozess) und Backoff-Retry bei 429/5xx/Netzwerkfehlern.
 
 const MIN_INTERVAL_MS = Number(process.env.MISTRAL_MIN_INTERVAL_MS ?? 1100);
-const MAX_RETRIES = Number(process.env.MISTRAL_MAX_RETRIES ?? 3);
+const MAX_RETRIES = Number(process.env.MISTRAL_MAX_RETRIES ?? 1);
 
 let nextSlot = 0;
 
@@ -37,11 +37,16 @@ export async function mistralCall<T>(fn: () => Promise<T>): Promise<T> {
       const status = (err as { statusCode?: number }).statusCode;
       const transient = status === undefined || status === 429 || status >= 500;
       if (!transient || attempt >= MAX_RETRIES) throw err;
-      // Backoff: 1.5s, 3s, 4.5s – oder Retry-After, falls geliefert.
-      const wait = retryAfterMs(err) ?? 1500 * (attempt + 1);
+      // Backoff: 2s je Versuch – oder Retry-After, falls geliefert.
+      const wait = retryAfterMs(err) ?? 2000 * (attempt + 1);
       console.warn(`[mistral] Status ${status ?? "?"}, Retry ${attempt + 1} in ${wait}ms`);
       nextSlot = Math.max(nextSlot, Date.now() + wait);
       await sleep(wait);
     }
   }
+}
+
+/** Mistral-Rate-Limit (429), auch nach Retries. */
+export function isRateLimited(err: unknown): boolean {
+  return (err as { statusCode?: number })?.statusCode === 429;
 }
