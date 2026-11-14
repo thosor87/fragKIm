@@ -105,7 +105,7 @@ async function runModeration(text: string): Promise<ModerationResult | null> {
     mistralClient = new Mistral({ apiKey: config.requireMistralKey() });
   }
   const res = await mistralCall(() => mistralClient!.classifiers.moderate({
-    model: "mistral-moderation-latest",
+    model: config.mistralModerationModel,
     inputs: [text],
   }));
   const results = (res as { results?: ModerationResult[] }).results ?? [];

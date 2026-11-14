@@ -65,7 +65,7 @@ export async function rewriteQuery(
       mistralClient = new Mistral({ apiKey: config.requireMistralKey() });
     }
     const res = await mistralCall(() => mistralClient!.chat.complete({
-      model: "mistral-small-latest",
+      model: config.mistralChatModel,
       temperature: 0,
       maxTokens: 100,
       messages: [
