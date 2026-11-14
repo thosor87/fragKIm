@@ -38,7 +38,7 @@ export async function judge(
 
   try {
     const res = await mistralCall(() => mistralClient!.chat.complete({
-      model: "mistral-small-latest",
+      model: config.mistralChatModel,
       temperature: 0,
       maxTokens: 20,
       messages: [

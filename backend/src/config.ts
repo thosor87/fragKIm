@@ -32,6 +32,12 @@ export const config = {
   llmProvider: parseLlm(process.env.LLM_PROVIDER),
 
   mistralApiKey: process.env.MISTRAL_API_KEY ?? "",
+  // Modellnamen konfigurierbar: Der Alias "-latest" kann auf ein Modell zeigen,
+  // für das ein Konto kein Limit hat (→ dauerhaft 429). Dann exakten Namen
+  // aus dem Mistral-Dashboard (Limits) setzen, z.B. mistral-small-2603.
+  mistralChatModel: process.env.MISTRAL_CHAT_MODEL ?? "mistral-small-latest",
+  mistralModerationModel:
+    process.env.MISTRAL_MODERATION_MODEL ?? "mistral-moderation-latest",
   qdrantUrl: process.env.QDRANT_URL ?? "http://localhost:6333",
   qdrantApiKey: process.env.QDRANT_API_KEY,
   qdrantCollection: process.env.QDRANT_COLLECTION ?? "klexikon",

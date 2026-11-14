@@ -14,6 +14,11 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
   einmal, statt sofort „Etwas ist schiefgegangen" zu zeigen.
 
 ### Behoben
+- **Mistral-Modellnamen per Env setzbar** (`MISTRAL_CHAT_MODEL`,
+  `MISTRAL_MODERATION_MODEL`, Default unverändert `-latest`). Der Alias
+  `mistral-small-latest` kann auf ein Modell zeigen, für das ein Konto kein
+  Limit hat und deshalb dauerhaft 429 bekommt; dann den exakten Namen aus dem
+  Dashboard (z. B. `mistral-small-2603`) eintragen.
 - **Mistral-Token-Limit (20.000 TPM im Free-Tarif).** Eine Frage schickte bis
   zu 6 Auszüge à 6.000 Zeichen plus System-Prompt (~13–15k Token) an das
   Modell; die zweite Frage pro Minute riss das Limit. Jetzt max. 3 Auszüge à

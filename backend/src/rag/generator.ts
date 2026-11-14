@@ -256,7 +256,7 @@ async function mistralGenerate(
   // antworten zu lassen.
   const client = mistralClient;
   const request = {
-    model: "mistral-small-latest",
+    model: config.mistralChatModel,
     temperature: 0.2,
     messages: [
       { role: "system" as const, content: SYSTEM_PROMPT },
@@ -351,7 +351,7 @@ async function translateText(text: string, lang: string): Promise<string> {
   if (!name || lang === "de" || !mistralClient) return text;
   try {
     const res = await mistralCall(() => mistralClient!.chat.complete({
-      model: "mistral-small-latest",
+      model: config.mistralChatModel,
       temperature: 0,
       messages: [
         {
