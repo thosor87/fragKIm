@@ -1,3 +1,4 @@
+import { mistralCall } from "./mistral-throttle.js";
 import { config } from "../config.js";
 import type { Hit } from "./qdrant.js";
 import type { ChatTurn } from "./pipeline.js";
@@ -258,18 +259,7 @@ async function mistralGenerate(
       },
     ],
   };
-  // Kurzzeitige Ausfälle (Rate-Limit 429, 5xx, Netzwerk) einmal wiederholen,
-  // statt sofort „Etwas ist schiefgegangen" zu zeigen.
-  let res;
-  try {
-    res = await client.chat.complete(request);
-  } catch (err) {
-    const status = (err as { statusCode?: number }).statusCode;
-    const transient = status === undefined || status === 429 || status >= 500;
-    if (!transient) throw err;
-    await new Promise((r) => setTimeout(r, 800));
-    res = await client.chat.complete(request);
-  }
+  const res = await mistralCall(() => client.chat.complete(request));
   // Neuere Mistral-Modelle liefern `content` teils als Liste von Teilstücken
   // ({type:"text", text}) statt als String; Denk-Teile (type "thinking")
   // werden ignoriert.
@@ -352,7 +342,7 @@ async function translateText(text: string, lang: string): Promise<string> {
   const name = LANG_NAMES[lang];
   if (!name || lang === "de" || !mistralClient) return text;
   try {
-    const res = await mistralClient.chat.complete({
+    const res = await mistralCall(() => mistralClient!.chat.complete({
       model: "mistral-small-latest",
       temperature: 0,
       messages: [
@@ -362,7 +352,7 @@ async function translateText(text: string, lang: string): Promise<string> {
         },
         { role: "user", content: text },
       ],
-    });
+    }));
     const out = res.choices?.[0]?.message?.content;
     return typeof out === "string" && out.trim() ? out.trim() : text;
   } catch {

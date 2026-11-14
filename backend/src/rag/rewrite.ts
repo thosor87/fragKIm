@@ -4,6 +4,7 @@
 //
 // Ohne diesen Schritt scheitert Retrieval an Pronomen und Folgefragen.
 
+import { mistralCall } from "./mistral-throttle.js";
 import { config } from "../config.js";
 import type { ChatTurn } from "./pipeline.js";
 
@@ -63,7 +64,7 @@ export async function rewriteQuery(
       const { Mistral } = await import("@mistralai/mistralai");
       mistralClient = new Mistral({ apiKey: config.requireMistralKey() });
     }
-    const res = await mistralClient.chat.complete({
+    const res = await mistralCall(() => mistralClient!.chat.complete({
       model: "mistral-small-latest",
       temperature: 0,
       maxTokens: 100,
@@ -71,7 +72,7 @@ export async function rewriteQuery(
         { role: "system", content: REWRITE_PROMPT },
         { role: "user", content: buildRewritePrompt(question, history) },
       ],
-    });
+    }));
     const content = res.choices?.[0]?.message?.content;
     if (typeof content !== "string") return question;
     const rewritten = content.trim().replace(/^["']|["']$/g, "");

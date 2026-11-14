@@ -13,6 +13,7 @@
 // der harte System-Prompt bleiben als erste Verteidigung bestehen; ein Ausfall
 // der Moderation soll nicht jede harmlose Frage blockieren.
 
+import { mistralCall } from "./mistral-throttle.js";
 import { config } from "../config.js";
 
 export type ModerationVerdict =
@@ -103,10 +104,10 @@ async function runModeration(text: string): Promise<ModerationResult | null> {
     const { Mistral } = await import("@mistralai/mistralai");
     mistralClient = new Mistral({ apiKey: config.requireMistralKey() });
   }
-  const res = await mistralClient.classifiers.moderate({
+  const res = await mistralCall(() => mistralClient!.classifiers.moderate({
     model: "mistral-moderation-latest",
     inputs: [text],
-  });
+  }));
   const results = (res as { results?: ModerationResult[] }).results ?? [];
   return results[0] ?? null;
 }
