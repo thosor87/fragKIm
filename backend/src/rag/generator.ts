@@ -53,6 +53,13 @@ export function noAnswer(): GenerateResult {
   return { text: NO_ANSWER_TEXT, noAnswer: true };
 }
 
+// Token-Budget pro Frage: Kleine Mistral-Tarife erlauben nur ca. 20.000 Token
+// pro Minute. Ohne Begrenzung gehen bis zu 6 Auszüge à 6.000 Zeichen
+// (~10.000 Token) plus System-Prompt (~3.000) in EINE Anfrage. Die Auszüge
+// sind nach Relevanz sortiert; mit höherem Tarif per Env wieder erhöhbar.
+export const MAX_EXCERPTS = Number(process.env.GENERATOR_MAX_EXCERPTS ?? 3);
+const EXCERPT_CHARS = Number(process.env.GENERATOR_EXCERPT_CHARS ?? 3500);
+
 const SYSTEM_PROMPT = `Du bist KIm, eine Wissensauskunft für Kinder.
 
 Wichtige Unterscheidung: Auszüge können zwar zum **Thema** der Frage gehören (z.B. Vulkan-Artikel bei einer Frage zu Vulkanen), aber die **konkrete Frage** trotzdem nicht beantworten (z.B. Vulkan-Artikel sagt nichts über Schwimmen). In diesem Fall NICHT WEISS_ICH_NICHT antworten, sondern Regel 2 anwenden.
@@ -202,9 +209,10 @@ ${emptyFallback}
 - Sonst: "WEISS_ICH_NICHT".`;
   }
   const ctx = hits
+    .slice(0, MAX_EXCERPTS)
     .map((h, i) => {
       const src = h.payload.source ?? "wiki";
-      return `[Auszug ${i + 1}] ${h.payload.title} (Quelle: ${src}, ${h.payload.url})\n${h.payload.text}`;
+      return `[Auszug ${i + 1}] ${h.payload.title} (Quelle: ${src}, ${h.payload.url})\n${h.payload.text.slice(0, EXCERPT_CHARS)}`;
     })
     .join("\n\n");
   const dRule = allgemeinwissenAllowed

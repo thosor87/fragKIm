@@ -30,7 +30,7 @@ import {
   noAnswerText,
   moderationBlockResponse,
 } from "../responses.js";
-import { generate } from "./generator.js";
+import { generate, MAX_EXCERPTS } from "./generator.js";
 import { rewriteQuery } from "./rewrite.js";
 import { moderateInput, moderateOutput } from "./moderation.js";
 
@@ -188,7 +188,9 @@ export async function ask(
   // bei einer Tierfrage) raus, BEVOR sie Quelle/Bild/Generierung beeinflussen.
   const hits = await filterRelevantHits(retrievalQuery, retrieved);
   const minScore = config.retrievalProvider === "online" ? MIN_ONLINE_SCORE : MIN_LOCAL_SCORE;
-  const strong = hits.filter((h) => h.score >= minScore);
+  // Auf das Token-Budget des Generators begrenzen, damit angezeigte Quellen
+  // genau den Auszügen entsprechen, die das Modell wirklich gesehen hat.
+  const strong = hits.filter((h) => h.score >= minScore).slice(0, MAX_EXCERPTS);
 
   // Mit LLM-Provider: auch bei 0 Treffern weiter, das LLM entscheidet
   // selbst, ob es aus Allgemeinwissen antworten kann (Weg 2). Im Stub-Modus

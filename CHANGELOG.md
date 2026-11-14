@@ -14,6 +14,11 @@ Versionierung nach [SemVer](https://semver.org/lang/de/).
   einmal, statt sofort „Etwas ist schiefgegangen" zu zeigen.
 
 ### Behoben
+- **Mistral-Token-Limit (20.000 TPM im Free-Tarif).** Eine Frage schickte bis
+  zu 6 Auszüge à 6.000 Zeichen plus System-Prompt (~13–15k Token) an das
+  Modell; die zweite Frage pro Minute riss das Limit. Jetzt max. 3 Auszüge à
+  3.500 Zeichen (`GENERATOR_MAX_EXCERPTS`, `GENERATOR_EXCERPT_CHARS`); die
+  angezeigten Quellen entsprechen genau diesen Auszügen.
 - **Mistral-Rate-Limit ehrlich melden.** Bei anhaltendem 429 antwortet
   `/api/ask` jetzt mit HTTP 429 und `code: "rate_limited"`; das Frontend zeigt
   „Gerade sind zu viele Fragen unterwegs …" (6 Sprachen) statt „Etwas ist
