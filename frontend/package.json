@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "i18next": "^26.7.2",
+    "i18next": "^27.2.2",
     "i18next-browser-languagedetector": "^8.3.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
