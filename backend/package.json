@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@fastify/cookie": "11.1.5",
-    "@fastify/formbody": "^9.0.1",
-    "@fastify/multipart": "^10.1.8",
-    "@fastify/static": "^10.1.10",
+    "@fastify/formbody": "^9.0.2",
+    "@fastify/multipart": "^10.1.9",
+    "@fastify/static": "^10.1.12",
     "@mistralai/mistralai": "^3.5.0",
     "dotenv": "^18.0.10",
     "fastify": "^5.12.8"
